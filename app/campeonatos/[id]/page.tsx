@@ -1,12 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import {
-  getCampeonato,
-  getClassificacao,
-  getPartidas,
-  type CampeonatoStatus,
-  type ClassificacaoItem,
-} from '@/lib/fake-data'
+import type { CampeonatoStatus, ClassificacaoItem } from '@/lib/fake-data'
+import { calcularClassificacao, getCampeonato, getPartidas } from '@/lib/store'
 import { PartidasTab } from './partidas-tab'
 
 type Props = {
@@ -105,7 +100,7 @@ export default async function CampeonatoPage({ params, searchParams }: Props) {
   if (!campeonato) notFound()
 
   const status = statusConfig[campeonato.status]
-  const classificacao = getClassificacao(id)
+  const classificacao = calcularClassificacao(id)
   const partidasList = getPartidas(id)
 
   return (

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { campeonatos, type CampeonatoStatus } from '@/lib/fake-data'
+import { getCampeonatos } from '@/lib/store'
+import type { CampeonatoStatus } from '@/lib/fake-data'
 
 const statusConfig: Record<CampeonatoStatus, { label: string; className: string }> = {
   em_andamento: {
@@ -33,7 +34,7 @@ export default function HomePage() {
         </div>
 
         <ul className="space-y-2">
-          {campeonatos.map((c) => {
+          {getCampeonatos().map((c) => {
             const status = statusConfig[c.status]
             return (
               <li key={c.id}>
