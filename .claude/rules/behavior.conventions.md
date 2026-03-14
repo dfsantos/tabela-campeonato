@@ -30,7 +30,7 @@ tabela-campeonato/
 │   ├── layout.tsx          # Root layout (fonte Geist, metadados globais)
 │   ├── page.tsx            # Home page
 │   ├── globals.css         # Tailwind v4 + variáveis CSS (light/dark)
-│   └── favicon.icog
+│   └── favicon.ico
 ├── public/                 # Assets estáticos servidos na raiz
 ├── .claude/                # Configuração do Claude Code
 │   ├── CLAUDE.md
