@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Este arquivo provê orientação ao Claude Code para trabalhar neste repositório.
 
 ## Commands
 
@@ -8,22 +8,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Start development server
 npm run build    # Build for production
 npm start        # Start production server
-npm run lint     # Run ESLint
+npm run lint     # Run ESLint (v9 flat config via eslint.config.mjs)
+npx tsc --noEmit # Type-check without emitting files
 ```
 
-## Stack
+## Rules
 
-- **Next.js 16** with App Router (`app/` directory)
-- **React 19** with TypeScript (strict mode)
-- **Tailwind CSS v4** via `@tailwindcss/postcss`
-- Path alias `@/*` maps to the project root
+Toda a especificação do projeto está em `.claude/rules/`. Leia os arquivos relevantes antes de implementar:
 
-## Architecture
+| Arquivo                         | Conteúdo                                                           |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `rules/context.project.md`      | O que é o sistema, público-alvo, fase atual, escopo da v1          |
+| `rules/context.domain.md`       | Glossário, entidades e regras de negócio críticas                  |
+| `rules/arch.structure.md`       | Telas do sistema e fluxo crítico de navegação                      |
+| `rules/arch.data.md`            | Regras de consistência de dados e limites de performance           |
+| `rules/behavior.workflow.md`    | Como propor e implementar tarefas; quando perguntar                |
+| `rules/behavior.testing.md`     | O que testar obrigatoriamente (núcleo: recálculo de classificação) |
+| `rules/behavior.conventions.md` | Convenções técnicas da stack (a preencher)                         |
+| `rules/decisions.md`            | Decisões arquiteturais registradas com data e raciocínio           |
+| `rules/progress.md`             | Status atual e tarefas pendentes                                   |
 
-This is a championship table (`tabela-campeonato`) app. The entry points are:
+## Regra crítica de domínio
 
-- `app/layout.tsx` — root layout with Geist fonts and global metadata
-- `app/page.tsx` — home page
-- `app/globals.css` — Tailwind imports and CSS variables for light/dark theme
+A classificação é **sempre derivada dos resultados das partidas** — nunca armazenada como estado definitivo. Registrar ou alterar um resultado dispara recálculo imediato. Nunca deixar classificação e resultados divergirem. Ver `rules/arch.data.md` e `rules/context.domain.md` para detalhes.
 
-The app is in early development; business logic for teams, matches, and standings has not yet been implemented.
+## Workflow
+
+Antes de tarefas com impacto arquitetural (alteração de schema, novo padrão, mudança no fluxo de recálculo): propor abordagem e aguardar aprovação. Ao concluir uma tarefa, atualizar `rules/progress.md` e, se houver decisão técnica relevante, registrar em `rules/decisions.md`. Ver `rules/behavior.workflow.md`.
