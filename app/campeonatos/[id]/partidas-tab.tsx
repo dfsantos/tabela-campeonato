@@ -21,7 +21,13 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
   }, {})
   const rodadas = Object.keys(porRodada).map(Number).sort((a, b) => a - b)
 
-  const [rodadaIdx, setRodadaIdx] = useState(rodadas.length - 1)
+  const primeiraRodadaPendenteIdx = rodadas.findIndex((r) =>
+    porRodada[r].some((p) => p.status === 'agendada'),
+  )
+  const initialIdx =
+    primeiraRodadaPendenteIdx !== -1 ? primeiraRodadaPendenteIdx : rodadas.length - 1
+
+  const [rodadaIdx, setRodadaIdx] = useState(initialIdx)
 
   if (partidas.length === 0) {
     return (
