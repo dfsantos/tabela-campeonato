@@ -47,7 +47,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
     return null
   }, [zonaElite, zonaSegundo, zonaRebaixamento, selectedCount])
 
-  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2 && !zonaError
+  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && !zonaError
 
   const timesFiltrados = filtroAtivo.trim().length >= 3
     ? times.filter(t => t.nome.toLowerCase().includes(filtroAtivo.trim().toLowerCase()))
@@ -141,7 +141,8 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                         value={time.id}
                         checked={selectedTimeIds.has(time.id)}
                         onChange={() => toggleTime(time.id)}
-                        className="h-4 w-4 rounded border-zinc-300 text-zinc-900 accent-zinc-900 dark:border-zinc-600 dark:accent-zinc-100"
+                        disabled={!selectedTimeIds.has(time.id) && selectedCount >= 24}
+                        className="h-4 w-4 rounded border-zinc-300 text-zinc-900 accent-zinc-900 dark:border-zinc-600 dark:accent-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
                       />
                       <div>
                         <span className="text-sm text-zinc-900 dark:text-zinc-100">{time.nome}</span>
@@ -156,6 +157,11 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
               {selectedCount === 1 && (
                 <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">
                   Selecione ao menos 1 time adicional
+                </p>
+              )}
+              {selectedCount > 24 && (
+                <p className="mt-1.5 text-xs text-red-500">
+                  Máximo de 24 times atingido
                 </p>
               )}
             </div>
