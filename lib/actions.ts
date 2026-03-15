@@ -23,6 +23,7 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   if (!nome) throw new Error('Nome é obrigatório')
   if (!temporada) throw new Error('Temporada é obrigatória')
   if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
+  if (timeIds.length > 24) throw new Error('Um campeonato pode ter no máximo 24 times')
 
   const gerarPartidas = formData.get('gerarPartidas') === 'on'
 
