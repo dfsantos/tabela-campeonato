@@ -28,6 +28,20 @@ Lógica funcional implementada. Registro de partidas, registro de resultados e c
 - `app/campeonatos/[id]/resultado/[partidaId]/page.tsx` — convertido para Server Component com form action
 - `app/campeonatos/[id]/partidas/nova/page.tsx` + `nova-partida-form.tsx` — separado em Server + Client Component; botão habilitado
 
+### Criação de campeonato com times
+- `lib/store.ts` — `addCampeonato(nome, temporada, timeIds)`: cria campeonato com status `planejado` e registra participantes
+- `lib/actions.ts` — `criarCampeonatoAction`: valida campos, exige ≥2 times, redireciona para detalhe
+- `app/campeonatos/novo/page.tsx` — convertido para Server Component, passa `getTimes()` para o form
+- `app/campeonatos/novo/novo-campeonato-form.tsx` — Client Component com checkboxes, contador de times e validação no submit
+
+### Cadastro de times
+- `lib/store.ts` — `addTime(nome, cidade?)`: cria time e adiciona ao estado global
+- `lib/actions.ts` — `criarTimeAction`: valida nome, chama `addTime`, redireciona para `/times`
+- `app/times/page.tsx` — Server Component: lista todos os times com botão "Novo time" e link "← Campeonatos"
+- `app/times/novo/page.tsx` — Server Component simples que renderiza o form
+- `app/times/novo/novo-time-form.tsx` — Client Component: campos nome (obrigatório) e cidade (opcional), submit desabilitado sem nome
+- `app/page.tsx` — botão "Times" adicionado ao cabeçalho da home, ao lado de "Novo campeonato"
+
 ## Em andamento
 
 _Nenhuma tarefa em andamento._

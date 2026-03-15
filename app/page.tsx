@@ -25,12 +25,20 @@ export default function HomePage() {
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
             Campeonatos
           </h1>
-          <Link
-            href="/campeonatos/novo"
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            Novo campeonato
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/times"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+            >
+              Times
+            </Link>
+            <Link
+              href="/campeonatos/novo"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              Novo campeonato
+            </Link>
+          </div>
         </div>
 
         <ul className="space-y-2">

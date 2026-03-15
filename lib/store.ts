@@ -21,30 +21,61 @@ function derivarParticipantes(partidas: Partida[]): Participante[] {
   return result
 }
 
-const campeonatos: Campeonato[] = [...seedCampeonatos]
-const times: Time[] = [...seedTimes]
-let partidas: Partida[] = [...seedPartidas]
-let participantes: Participante[] = derivarParticipantes(seedPartidas)
-let nextId = 100
+interface StoreState {
+  campeonatos: Campeonato[]
+  times: Time[]
+  partidas: Partida[]
+  participantes: Participante[]
+  nextId: number
+}
+
+const g = globalThis as typeof globalThis & { __store?: StoreState }
+if (!g.__store) {
+  g.__store = {
+    campeonatos: [...seedCampeonatos],
+    times: [...seedTimes],
+    partidas: [...seedPartidas],
+    participantes: derivarParticipantes(seedPartidas),
+    nextId: 100,
+  }
+}
+const state = g.__store
 
 export function getCampeonatos(): Campeonato[] {
-  return campeonatos
+  return state.campeonatos
 }
 
 export function getCampeonato(id: string): Campeonato | undefined {
-  return campeonatos.find((c) => c.id === id)
+  return state.campeonatos.find((c) => c.id === id)
 }
 
 export function getTimes(): Time[] {
-  return times
+  return state.times
 }
 
 export function getPartidas(campeonatoId: string): Partida[] {
-  return partidas.filter((p) => p.campeonatoId === campeonatoId)
+  return state.partidas.filter((p) => p.campeonatoId === campeonatoId)
 }
 
 export function getPartida(id: string): Partida | undefined {
-  return partidas.find((p) => p.id === id)
+  return state.partidas.find((p) => p.id === id)
+}
+
+export function addTime(nome: string, cidade?: string): Time {
+  const id = String(state.nextId++)
+  const time: Time = { id, nome, ...(cidade ? { cidade } : {}) }
+  state.times.push(time)
+  return time
+}
+
+export function addCampeonato(nome: string, temporada: string, timeIds: string[]): Campeonato {
+  const id = String(state.nextId++)
+  const campeonato: Campeonato = { id, nome, temporada, status: 'planejado' }
+  state.campeonatos.push(campeonato)
+  for (const timeId of timeIds) {
+    state.participantes = [...state.participantes, { campeonatoId: id, timeId }]
+  }
+  return campeonato
 }
 
 export function addPartida(
@@ -54,15 +85,15 @@ export function addPartida(
   visitanteId: string,
   data: string,
 ): Partida {
-  const mandante = times.find((t) => t.id === mandanteId)!
-  const visitante = times.find((t) => t.id === visitanteId)!
-  const id = String(nextId++)
+  const mandante = state.times.find((t) => t.id === mandanteId)!
+  const visitante = state.times.find((t) => t.id === visitanteId)!
+  const id = String(state.nextId++)
   const partida: Partida = { id, campeonatoId, rodada, mandante, visitante, data, status: 'agendada' }
-  partidas = [...partidas, partida]
+  state.partidas = [...state.partidas, partida]
 
   for (const timeId of [mandanteId, visitanteId]) {
-    if (!participantes.some((p) => p.campeonatoId === campeonatoId && p.timeId === timeId)) {
-      participantes = [...participantes, { campeonatoId, timeId }]
+    if (!state.participantes.some((p) => p.campeonatoId === campeonatoId && p.timeId === timeId)) {
+      state.participantes = [...state.participantes, { campeonatoId, timeId }]
     }
   }
 
@@ -74,14 +105,14 @@ export function registrarResultado(
   golsMandante: number,
   golsVisitante: number,
 ): Partida {
-  partidas = partidas.map((p) =>
+  state.partidas = state.partidas.map((p) =>
     p.id === partidaId ? { ...p, golsMandante, golsVisitante, status: 'finalizada' } : p,
   )
-  return partidas.find((p) => p.id === partidaId)!
+  return state.partidas.find((p) => p.id === partidaId)!
 }
 
 export function calcularClassificacao(campeonatoId: string): ClassificacaoItem[] {
-  const finalizadas = partidas.filter(
+  const finalizadas = state.partidas.filter(
     (p) => p.campeonatoId === campeonatoId && p.status === 'finalizada',
   )
 
@@ -98,8 +129,8 @@ export function calcularClassificacao(campeonatoId: string): ClassificacaoItem[]
 
   const statsMap = new Map<string, Stats>()
 
-  for (const part of participantes.filter((p) => p.campeonatoId === campeonatoId)) {
-    const time = times.find((t) => t.id === part.timeId)!
+  for (const part of state.participantes.filter((p) => p.campeonatoId === campeonatoId)) {
+    const time = state.times.find((t) => t.id === part.timeId)!
     statsMap.set(part.timeId, {
       time,
       pontos: 0,
