@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Time } from '@/lib/fake-data'
 import { criarCampeonatoAction } from '@/lib/actions'
 
@@ -10,6 +10,15 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
   const [temporada, setTemporada] = useState('')
   const [selectedTimeIds, setSelectedTimeIds] = useState<Set<string>>(new Set())
   const [gerarPartidas, setGerarPartidas] = useState(false)
+  const [filtroNome, setFiltroNome] = useState('')
+  const [filtroAtivo, setFiltroAtivo] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFiltroAtivo(filtroNome)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [filtroNome])
 
   function toggleTime(id: string) {
     setSelectedTimeIds((prev) => {
@@ -25,6 +34,10 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
 
   const selectedCount = selectedTimeIds.size
   const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2
+
+  const timesFiltrados = filtroAtivo.trim().length >= 3
+    ? times.filter(t => t.nome.toLowerCase().includes(filtroAtivo.trim().toLowerCase()))
+    : times
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -90,28 +103,41 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                   {selectedTimeIds.size} {selectedTimeIds.size === 1 ? 'time selecionado' : 'times selecionados'}
                 </span>
               </div>
+              <input
+                type="text"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                placeholder="Buscar time pelo nome…"
+                className="mb-2 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500"
+              />
               <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
-                {times.map((time) => (
-                  <label
-                    key={time.id}
-                    className="flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                  >
-                    <input
-                      type="checkbox"
-                      name="timeIds"
-                      value={time.id}
-                      checked={selectedTimeIds.has(time.id)}
-                      onChange={() => toggleTime(time.id)}
-                      className="h-4 w-4 rounded border-zinc-300 text-zinc-900 accent-zinc-900 dark:border-zinc-600 dark:accent-zinc-100"
-                    />
-                    <div>
-                      <span className="text-sm text-zinc-900 dark:text-zinc-100">{time.nome}</span>
-                      {time.cidade && (
-                        <span className="ml-1.5 text-xs text-zinc-400 dark:text-zinc-500">{time.cidade}</span>
-                      )}
-                    </div>
-                  </label>
-                ))}
+                {timesFiltrados.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                    Nenhum time encontrado
+                  </p>
+                ) : (
+                  timesFiltrados.map((time) => (
+                    <label
+                      key={time.id}
+                      className="flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    >
+                      <input
+                        type="checkbox"
+                        name="timeIds"
+                        value={time.id}
+                        checked={selectedTimeIds.has(time.id)}
+                        onChange={() => toggleTime(time.id)}
+                        className="h-4 w-4 rounded border-zinc-300 text-zinc-900 accent-zinc-900 dark:border-zinc-600 dark:accent-zinc-100"
+                      />
+                      <div>
+                        <span className="text-sm text-zinc-900 dark:text-zinc-100">{time.nome}</span>
+                        {time.cidade && (
+                          <span className="ml-1.5 text-xs text-zinc-400 dark:text-zinc-500">{time.cidade}</span>
+                        )}
+                      </div>
+                    </label>
+                  ))
+                )}
               </div>
               {selectedCount === 1 && (
                 <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">
