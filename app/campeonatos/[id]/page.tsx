@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { CampeonatoStatus, ClassificacaoItem } from '@/lib/fake-data'
+import type { CampeonatoStatus, ClassificacaoItem, Zonas } from '@/lib/fake-data'
 import { calcularClassificacao, getCampeonato, getPartidas } from '@/lib/store'
+import { getZona, zonaTextClass } from '@/lib/zonas'
 import { PartidasTab } from './partidas-tab'
 
 type Props = {
@@ -24,7 +25,7 @@ const statusConfig: Record<CampeonatoStatus, { label: string; className: string 
   },
 }
 
-function ClassificacaoTab({ items }: { items: ClassificacaoItem[] }) {
+function ClassificacaoTab({ items, zonas }: { items: ClassificacaoItem[]; zonas: Zonas | undefined }) {
   if (items.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-zinc-400 dark:text-zinc-600">
@@ -34,6 +35,7 @@ function ClassificacaoTab({ items }: { items: ClassificacaoItem[] }) {
   }
 
   return (
+    <>
     <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
       <table className="w-full text-sm">
         <thead>
@@ -56,7 +58,7 @@ function ClassificacaoTab({ items }: { items: ClassificacaoItem[] }) {
               key={item.time.id}
               className="bg-white transition-colors hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800/30"
             >
-              <td className="px-4 py-3 text-zinc-400 dark:text-zinc-600">{item.posicao}</td>
+              <td className={`px-4 py-3 ${(() => { const z = getZona(item.posicao, items.length, zonas); return z ? zonaTextClass[z] : 'text-zinc-400 dark:text-zinc-600' })()}`}>{item.posicao}</td>
               <td className="px-4 py-3">
                 <span className="font-medium text-zinc-900 dark:text-zinc-100">{item.time.nome}</span>
                 {item.time.cidade && (
@@ -88,6 +90,15 @@ function ClassificacaoTab({ items }: { items: ClassificacaoItem[] }) {
         </tbody>
       </table>
     </div>
+    {zonas && (
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-zinc-500">
+        {zonas.campeao && <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" />Campeão</span>}
+        {zonas.elite && <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Elite</span>}
+        {zonas.segundoPelotao && <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" />2º Pelotão</span>}
+        {zonas.rebaixamento && <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" />Rebaixamento</span>}
+      </div>
+    )}
+    </>
   )
 }
 
@@ -163,7 +174,7 @@ export default async function CampeonatoPage({ params, searchParams }: Props) {
 
         {/* Tab content */}
         {aba === 'classificacao' ? (
-          <ClassificacaoTab items={classificacao} />
+          <ClassificacaoTab items={classificacao} zonas={campeonato.zonas} />
         ) : (
           <PartidasTab partidas={partidasList} campeonatoId={id} />
         )}

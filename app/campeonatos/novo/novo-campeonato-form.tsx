@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Time } from '@/lib/fake-data'
 import { criarCampeonatoAction } from '@/lib/actions'
 
@@ -12,6 +12,11 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
   const [gerarPartidas, setGerarPartidas] = useState(false)
   const [filtroNome, setFiltroNome] = useState('')
   const [filtroAtivo, setFiltroAtivo] = useState('')
+  const [zonasAberto, setZonasAberto] = useState(false)
+  const [zonaCampeao, setZonaCampeao] = useState(false)
+  const [zonaElite, setZonaElite] = useState('')
+  const [zonaSegundo, setZonaSegundo] = useState('')
+  const [zonaRebaixamento, setZonaRebaixamento] = useState('')
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -33,7 +38,16 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
   }
 
   const selectedCount = selectedTimeIds.size
-  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2
+
+  const zonaError = useMemo(() => {
+    const e = Number(zonaElite) || 0
+    const s = Number(zonaSegundo) || 0
+    const r = Number(zonaRebaixamento) || 0
+    if (e + s + r > selectedCount) return `Soma (${e + s + r}) excede o número de times (${selectedCount})`
+    return null
+  }, [zonaElite, zonaSegundo, zonaRebaixamento, selectedCount])
+
+  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2 && !zonaError
 
   const timesFiltrados = filtroAtivo.trim().length >= 3
     ? times.filter(t => t.nome.toLowerCase().includes(filtroAtivo.trim().toLowerCase()))
@@ -167,6 +181,98 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                     : 2 * selectedCount}{' '}
                   rodadas serão agendadas.
                 </p>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setZonasAberto((v) => !v)}
+                className="flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  className={`transition-transform ${zonasAberto ? 'rotate-90' : ''}`}
+                >
+                  <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Zonas de classificação
+              </button>
+
+              {zonasAberto && (
+                <div className="mt-3 space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      name="zonaCampeao"
+                      checked={zonaCampeao}
+                      onChange={(e) => setZonaCampeao(e.target.checked)}
+                      className="h-4 w-4 rounded border-zinc-300 accent-zinc-900 dark:border-zinc-600 dark:accent-zinc-100"
+                    />
+                    <span className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                      Destaque para campeão (posição 1)
+                    </span>
+                  </label>
+
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-emerald-500" />
+                    <label className="flex flex-1 items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="w-28 flex-shrink-0">Elite (top N):</span>
+                      <input
+                        type="number"
+                        name="zonaElite"
+                        min="1"
+                        value={zonaElite}
+                        onChange={(e) => setZonaElite(e.target.value)}
+                        placeholder="—"
+                        className="w-20 rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500"
+                      />
+                      <span className="text-xs text-zinc-400">times</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-sky-500" />
+                    <label className="flex flex-1 items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="w-28 flex-shrink-0">2º Pelotão:</span>
+                      <input
+                        type="number"
+                        name="zonaSegundoPelotao"
+                        min="1"
+                        value={zonaSegundo}
+                        onChange={(e) => setZonaSegundo(e.target.value)}
+                        placeholder="—"
+                        className="w-20 rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500"
+                      />
+                      <span className="text-xs text-zinc-400">times</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-red-500" />
+                    <label className="flex flex-1 items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="w-28 flex-shrink-0">Rebaixamento:</span>
+                      <input
+                        type="number"
+                        name="zonaRebaixamento"
+                        min="1"
+                        value={zonaRebaixamento}
+                        onChange={(e) => setZonaRebaixamento(e.target.value)}
+                        placeholder="—"
+                        className="w-20 rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500"
+                      />
+                      <span className="text-xs text-zinc-400">times</span>
+                    </label>
+                  </div>
+
+                  {zonaError && (
+                    <p className="text-xs text-red-500">{zonaError}</p>
+                  )}
+                </div>
               )}
             </div>
 

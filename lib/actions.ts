@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { addCampeonato, addPartida, addTime, getTimesDoCampeonato, registrarResultado } from './store'
+import { validateZonas } from './zonas'
+import type { Zonas } from './fake-data'
 
 export async function criarTimeAction(formData: FormData): Promise<void> {
   const nome = formData.get('nome')?.toString().trim()
@@ -23,7 +25,23 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
 
   const gerarPartidas = formData.get('gerarPartidas') === 'on'
-  const campeonato = addCampeonato(nome, temporada, timeIds, gerarPartidas)
+
+  const campeao = formData.get('zonaCampeao') === 'on'
+  const elite = Number(formData.get('zonaElite')) || undefined
+  const segundoPelotao = Number(formData.get('zonaSegundoPelotao')) || undefined
+  const rebaixamento = Number(formData.get('zonaRebaixamento')) || undefined
+
+  const hasZonas = campeao || elite || segundoPelotao || rebaixamento
+  const zonas: Zonas | undefined = hasZonas
+    ? { ...(campeao && { campeao }), ...(elite && { elite }), ...(segundoPelotao && { segundoPelotao }), ...(rebaixamento && { rebaixamento }) }
+    : undefined
+
+  if (zonas) {
+    const error = validateZonas(zonas, timeIds.length)
+    if (error) throw new Error(error)
+  }
+
+  const campeonato = addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
 }
