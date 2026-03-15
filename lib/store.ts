@@ -53,6 +53,13 @@ export function getTimes(): Time[] {
   return state.times
 }
 
+export function getTimesDoCampeonato(campeonatoId: string): Time[] {
+  return state.participantes
+    .filter((p) => p.campeonatoId === campeonatoId)
+    .map((p) => state.times.find((t) => t.id === p.timeId)!)
+    .filter(Boolean)
+}
+
 export function getPartidas(campeonatoId: string): Partida[] {
   return state.partidas.filter((p) => p.campeonatoId === campeonatoId)
 }

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getCampeonato, getPartidas, getTimes } from '@/lib/store'
+import { getCampeonato, getPartidas, getTimesDoCampeonato } from '@/lib/store'
 import { NovaPartidaForm } from './nova-partida-form'
 
 type Props = {
@@ -11,7 +11,7 @@ export default async function NovaPartidaPage({ params }: Props) {
   const campeonato = getCampeonato(id)
   if (!campeonato) notFound()
 
-  const times = getTimes()
+  const times = getTimesDoCampeonato(id)
   const partidas = getPartidas(id)
   const proximaRodada =
     partidas.length > 0 ? Math.max(...partidas.map((p) => p.rodada)) : 1
