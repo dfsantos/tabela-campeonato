@@ -2,7 +2,30 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addPartida, registrarResultado } from './store'
+import { addCampeonato, addPartida, addTime, registrarResultado } from './store'
+
+export async function criarTimeAction(formData: FormData): Promise<void> {
+  const nome = formData.get('nome')?.toString().trim()
+  const cidade = formData.get('cidade')?.toString().trim() || undefined
+  if (!nome) throw new Error('Nome é obrigatório')
+  addTime(nome, cidade)
+  revalidatePath('/times')
+  redirect('/times')
+}
+
+export async function criarCampeonatoAction(formData: FormData): Promise<void> {
+  const nome = (formData.get('nome') as string).trim()
+  const temporada = (formData.get('temporada') as string).trim()
+  const timeIds = formData.getAll('timeIds') as string[]
+
+  if (!nome) throw new Error('Nome é obrigatório')
+  if (!temporada) throw new Error('Temporada é obrigatória')
+  if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
+
+  const campeonato = addCampeonato(nome, temporada, timeIds)
+  revalidatePath('/')
+  redirect(`/campeonatos/${campeonato.id}`)
+}
 
 export async function registrarPartidaAction(formData: FormData): Promise<void> {
   const campeonatoId = formData.get('campeonatoId') as string
