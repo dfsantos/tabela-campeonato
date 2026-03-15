@@ -75,13 +75,56 @@ export function addTime(nome: string, cidade?: string): Time {
   return time
 }
 
-export function addCampeonato(nome: string, temporada: string, timeIds: string[]): Campeonato {
+function gerarPartidasRoundRobin(
+  timeIds: string[],
+): Array<{ rodada: number; mandanteId: string; visitanteId: string }> {
+  const ids = [...timeIds]
+  if (ids.length % 2 === 1) ids.push('bye')
+
+  const n = ids.length
+  const rounds = n - 1
+  const matchesPerRound = n / 2
+  const result: Array<{ rodada: number; mandanteId: string; visitanteId: string }> = []
+
+  for (let r = 0; r < rounds; r++) {
+    for (let m = 0; m < matchesPerRound; m++) {
+      const home = ids[m]
+      const away = ids[n - 1 - m]
+      if (home !== 'bye' && away !== 'bye') {
+        result.push({ rodada: r + 1, mandanteId: home, visitanteId: away })
+      }
+    }
+    ids.splice(1, 0, ids.pop()!)
+  }
+
+  const firstTurn = [...result]
+  for (const p of firstTurn) {
+    result.push({ rodada: p.rodada + rounds, mandanteId: p.visitanteId, visitanteId: p.mandanteId })
+  }
+
+  return result
+}
+
+export function addCampeonato(
+  nome: string,
+  temporada: string,
+  timeIds: string[],
+  gerarPartidas?: boolean,
+): Campeonato {
   const id = String(state.nextId++)
   const campeonato: Campeonato = { id, nome, temporada, status: 'planejado' }
   state.campeonatos.push(campeonato)
   for (const timeId of timeIds) {
     state.participantes = [...state.participantes, { campeonatoId: id, timeId }]
   }
+
+  if (gerarPartidas) {
+    const partidas = gerarPartidasRoundRobin(timeIds)
+    for (const p of partidas) {
+      addPartida(id, p.rodada, p.mandanteId, p.visitanteId, '')
+    }
+  }
+
   return campeonato
 }
 

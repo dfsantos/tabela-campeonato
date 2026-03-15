@@ -22,7 +22,8 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   if (!temporada) throw new Error('Temporada é obrigatória')
   if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
 
-  const campeonato = addCampeonato(nome, temporada, timeIds)
+  const gerarPartidas = formData.get('gerarPartidas') === 'on'
+  const campeonato = addCampeonato(nome, temporada, timeIds, gerarPartidas)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
 }

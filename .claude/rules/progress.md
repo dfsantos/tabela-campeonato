@@ -42,6 +42,12 @@ Lógica funcional implementada. Registro de partidas, registro de resultados e c
 - `app/times/novo/novo-time-form.tsx` — Client Component: campos nome (obrigatório) e cidade (opcional), submit desabilitado sem nome
 - `app/page.tsx` — botão "Times" adicionado ao cabeçalho da home, ao lado de "Novo campeonato"
 
+### Geração automática de tabela (turno e returno)
+- `lib/store.ts` — `gerarPartidasRoundRobin` (interno, método círculo): gera N*(N-1) partidas para N times
+- `lib/store.ts` — `addCampeonato` aceita `gerarPartidas?: boolean`; quando `true`, chama `gerarPartidasRoundRobin` e registra as partidas via `addPartida`
+- `lib/actions.ts` — `criarCampeonatoAction` lê `gerarPartidas` do formData
+- `app/campeonatos/novo/novo-campeonato-form.tsx` — checkbox "Gerar tabela automaticamente" + texto informativo com contagem de partidas e rodadas
+
 ## Em andamento
 
 _Nenhuma tarefa em andamento._
