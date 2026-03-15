@@ -1,4 +1,4 @@
-import type { Campeonato, ClassificacaoItem, Partida, Time } from './fake-data'
+import type { Campeonato, ClassificacaoItem, Partida, Time, Zonas } from './fake-data'
 import { campeonatos as seedCampeonatos, partidas as seedPartidas, times as seedTimes } from './fake-data'
 
 interface Participante {
@@ -110,9 +110,10 @@ export function addCampeonato(
   temporada: string,
   timeIds: string[],
   gerarPartidas?: boolean,
+  zonas?: Zonas,
 ): Campeonato {
   const id = String(state.nextId++)
-  const campeonato: Campeonato = { id, nome, temporada, status: 'planejado' }
+  const campeonato: Campeonato = { id, nome, temporada, status: 'planejado', ...(zonas ? { zonas } : {}) }
   state.campeonatos.push(campeonato)
   for (const timeId of timeIds) {
     state.participantes = [...state.participantes, { campeonatoId: id, timeId }]

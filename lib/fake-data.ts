@@ -32,11 +32,19 @@ export interface ClassificacaoItem {
   saldoGols: number
 }
 
+export interface Zonas {
+  campeao?: boolean
+  elite?: number
+  segundoPelotao?: number
+  rebaixamento?: number
+}
+
 export interface Campeonato {
   id: string
   nome: string
   temporada: string
   status: CampeonatoStatus
+  zonas?: Zonas
 }
 
 export const times: Time[] = [
