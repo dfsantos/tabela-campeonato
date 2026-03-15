@@ -162,6 +162,12 @@ export function registrarResultado(
   return state.partidas.find((p) => p.id === partidaId)!
 }
 
+export function deleteCampeonato(id: string): void {
+  state.campeonatos = state.campeonatos.filter((c) => c.id !== id)
+  state.participantes = state.participantes.filter((p) => p.campeonatoId !== id)
+  state.partidas = state.partidas.filter((p) => p.campeonatoId !== id)
+}
+
 export function calcularClassificacao(campeonatoId: string): ClassificacaoItem[] {
   const finalizadas = state.partidas.filter(
     (p) => p.campeonatoId === campeonatoId && p.status === 'finalizada',
