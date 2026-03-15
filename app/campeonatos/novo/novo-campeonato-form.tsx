@@ -9,6 +9,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
   const [nome, setNome] = useState('')
   const [temporada, setTemporada] = useState('')
   const [selectedTimeIds, setSelectedTimeIds] = useState<Set<string>>(new Set())
+  const [gerarPartidas, setGerarPartidas] = useState(false)
 
   function toggleTime(id: string) {
     setSelectedTimeIds((prev) => {
@@ -22,7 +23,8 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
     })
   }
 
-  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedTimeIds.size >= 2
+  const selectedCount = selectedTimeIds.size
+  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -111,9 +113,33 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                   </label>
                 ))}
               </div>
-              {selectedTimeIds.size === 1 && (
+              {selectedCount === 1 && (
                 <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">
                   Selecione ao menos 1 time adicional
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  name="gerarPartidas"
+                  checked={gerarPartidas}
+                  onChange={(e) => setGerarPartidas(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-300 text-zinc-900 accent-zinc-900 dark:border-zinc-600 dark:accent-zinc-100"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  Gerar tabela de jogos automaticamente (turno e returno)
+                </span>
+              </label>
+              {gerarPartidas && selectedCount >= 2 && (
+                <p className="mt-1.5 ml-7 text-xs text-zinc-400 dark:text-zinc-500">
+                  {selectedCount * (selectedCount - 1)} partidas em{' '}
+                  {selectedCount % 2 === 0
+                    ? 2 * (selectedCount - 1)
+                    : 2 * selectedCount}{' '}
+                  rodadas serão agendadas.
                 </p>
               )}
             </div>
