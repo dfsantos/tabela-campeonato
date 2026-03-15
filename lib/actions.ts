@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addCampeonato, addPartida, addTime, getTimesDoCampeonato, registrarResultado } from './store'
+import { addCampeonato, addPartida, addTime, deleteCampeonato, getTimesDoCampeonato, registrarResultado } from './store'
 import { validateZonas } from './zonas'
 import type { Zonas } from './fake-data'
 
@@ -65,6 +65,13 @@ export async function registrarPartidaAction(formData: FormData): Promise<void> 
   addPartida(campeonatoId, rodada, mandanteId, visitanteId, data)
   revalidatePath(`/campeonatos/${campeonatoId}`)
   redirect(`/campeonatos/${campeonatoId}?aba=partidas`)
+}
+
+export async function excluirCampeonatoAction(formData: FormData): Promise<void> {
+  const id = formData.get('id') as string
+  if (!id) throw new Error('ID do campeonato é obrigatório')
+  deleteCampeonato(id)
+  revalidatePath('/')
 }
 
 export async function registrarResultadoAction(formData: FormData): Promise<void> {
