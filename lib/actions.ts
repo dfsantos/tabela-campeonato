@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addCampeonato, addPartida, addTime, registrarResultado } from './store'
+import { addCampeonato, addPartida, addTime, getTimesDoCampeonato, registrarResultado } from './store'
 
 export async function criarTimeAction(formData: FormData): Promise<void> {
   const nome = formData.get('nome')?.toString().trim()
@@ -36,6 +36,11 @@ export async function registrarPartidaAction(formData: FormData): Promise<void> 
 
   if (mandanteId === visitanteId) throw new Error('Times devem ser diferentes')
   if (rodada < 1) throw new Error('Rodada inválida')
+
+  const participantes = getTimesDoCampeonato(campeonatoId).map((t) => t.id)
+  if (!participantes.includes(mandanteId) || !participantes.includes(visitanteId)) {
+    throw new Error('Times devem ser participantes do campeonato')
+  }
 
   addPartida(campeonatoId, rodada, mandanteId, visitanteId, data)
   revalidatePath(`/campeonatos/${campeonatoId}`)
