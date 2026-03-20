@@ -1,11 +1,13 @@
-import { sql } from '@vercel/postgres'
+import postgres from 'postgres'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' })
 
 async function seed() {
   console.log('Creating tables...')
   const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8')
-  await sql.query(schema)
+  await sql.unsafe(schema)
 
   console.log('Seeding times...')
   const timesData = [
@@ -26,16 +28,16 @@ async function seed() {
       ON CONFLICT DO NOTHING
       RETURNING id
     `
-    if (result.rows.length > 0) {
-      timeIds.push(result.rows[0].id)
+    if (result.length > 0) {
+      timeIds.push(result[0].id as number)
     }
   }
 
   if (timeIds.length === 0) {
     console.log('Times already seeded, fetching existing IDs...')
     const existing = await sql`SELECT id FROM times ORDER BY id`
-    for (const row of existing.rows) {
-      timeIds.push(row.id)
+    for (const row of existing) {
+      timeIds.push(row.id as number)
     }
   }
 
@@ -52,7 +54,7 @@ async function seed() {
       INSERT INTO campeonatos (nome, temporada, status) VALUES (${c.nome}, ${c.temporada}, ${c.status})
       RETURNING id
     `
-    campIds.push(result.rows[0].id)
+    campIds.push(result[0].id as number)
   }
 
   const c1 = campIds[0]
