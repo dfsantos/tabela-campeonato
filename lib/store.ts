@@ -1,27 +1,37 @@
 import { sql } from './db'
 import type { Campeonato, ClassificacaoItem, Partida, Time, Zonas } from './types'
 
+function parseJsonb<T>(value: unknown): T | undefined {
+  if (value == null) return undefined
+  if (typeof value === 'string') return JSON.parse(value) as T
+  return value as T
+}
+
 export async function getCampeonatos(): Promise<Campeonato[]> {
   const rows = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos ORDER BY id`
-  return rows.map((r) => ({
-    id: String(r.id),
-    nome: r.nome as string,
-    temporada: r.temporada as string,
-    status: r.status as Campeonato['status'],
-    ...(r.zonas ? { zonas: r.zonas as Zonas } : {}),
-  }))
+  return rows.map((r) => {
+    const zonas = parseJsonb<Zonas>(r.zonas)
+    return {
+      id: String(r.id),
+      nome: r.nome as string,
+      temporada: r.temporada as string,
+      status: r.status as Campeonato['status'],
+      ...(zonas ? { zonas } : {}),
+    }
+  })
 }
 
 export async function getCampeonato(id: string): Promise<Campeonato | undefined> {
   const rows = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos WHERE id = ${Number(id)}`
   if (rows.length === 0) return undefined
   const r = rows[0]
+  const zonas = parseJsonb<Zonas>(r.zonas)
   return {
     id: String(r.id),
     nome: r.nome as string,
     temporada: r.temporada as string,
     status: r.status as Campeonato['status'],
-    ...(r.zonas ? { zonas: r.zonas as Zonas } : {}),
+    ...(zonas ? { zonas } : {}),
   }
 }
 
@@ -152,19 +162,18 @@ export async function addCampeonato(
   gerarPartidas?: boolean,
   zonas?: Zonas,
 ): Promise<Campeonato> {
-  const zonasJson = zonas ? JSON.stringify(zonas) : null
-
   const rows = await sql`
     INSERT INTO campeonatos (nome, temporada, status, zonas)
-    VALUES (${nome}, ${temporada}, 'planejado', ${zonasJson}::jsonb)
+    VALUES (${nome}, ${temporada}, 'planejado', ${zonas ? sql.json(zonas as never) : null})
     RETURNING id, nome, temporada, status, zonas
   `
+  const zonasParsed = parseJsonb<Zonas>(rows[0].zonas)
   const campeonato: Campeonato = {
     id: String(rows[0].id),
     nome: rows[0].nome as string,
     temporada: rows[0].temporada as string,
     status: rows[0].status as Campeonato['status'],
-    ...(rows[0].zonas ? { zonas: rows[0].zonas as Zonas } : {}),
+    ...(zonasParsed ? { zonas: zonasParsed } : {}),
   }
 
   for (const timeId of timeIds) {
