@@ -48,6 +48,17 @@ Lógica funcional implementada. Registro de partidas, registro de resultados e c
 - `lib/actions.ts` — `criarCampeonatoAction` lê `gerarPartidas` do formData
 - `app/campeonatos/novo/novo-campeonato-form.tsx` — checkbox "Gerar tabela automaticamente" + texto informativo com contagem de partidas e rodadas
 
+### Migração de store em memória para Vercel Postgres
+- `lib/fake-data.ts` renomeado para `lib/types.ts` — apenas types exportados
+- `lib/db/schema.sql` — DDL das tabelas (times, campeonatos, participantes, partidas)
+- `lib/db/index.ts` — re-exporta `sql` do `@vercel/postgres`
+- `lib/db/seed.ts` — script executável que cria tabelas e insere dados seed (`npm run db:seed`)
+- `lib/store.ts` — reescrito: todas as funções agora são `async` e usam SQL via `@vercel/postgres`
+- `lib/actions.ts` — adicionado `await` nas chamadas ao store
+- Todas as pages com queries ao store agora usam `await` + `export const dynamic = 'force-dynamic'`
+- Todos os imports de `@/lib/fake-data` atualizados para `@/lib/types`
+- IDs mantidos como `string` na interface (convertidos via `String(id)` no store)
+
 ## Em andamento
 
 _Nenhuma tarefa em andamento._

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import type { Campeonato, Time } from '@/lib/fake-data'
+import type { Campeonato, Time } from '@/lib/types'
 import { registrarPartidaAction } from '@/lib/actions'
 
 interface Props {

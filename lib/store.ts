@@ -1,78 +1,117 @@
-import type { Campeonato, ClassificacaoItem, Partida, Time, Zonas } from './fake-data'
-import { campeonatos as seedCampeonatos, partidas as seedPartidas, times as seedTimes } from './fake-data'
+import { sql } from './db'
+import type { Campeonato, ClassificacaoItem, Partida, Time, Zonas } from './types'
 
-interface Participante {
-  campeonatoId: string
-  timeId: string
+export async function getCampeonatos(): Promise<Campeonato[]> {
+  const { rows } = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos ORDER BY id`
+  return rows.map((r) => ({
+    id: String(r.id),
+    nome: r.nome,
+    temporada: r.temporada,
+    status: r.status,
+    ...(r.zonas ? { zonas: r.zonas as Zonas } : {}),
+  }))
 }
 
-function derivarParticipantes(partidas: Partida[]): Participante[] {
-  const seen = new Set<string>()
-  const result: Participante[] = []
-  for (const p of partidas) {
-    for (const timeId of [p.mandante.id, p.visitante.id]) {
-      const key = `${p.campeonatoId}:${timeId}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        result.push({ campeonatoId: p.campeonatoId, timeId })
-      }
-    }
-  }
-  return result
-}
-
-interface StoreState {
-  campeonatos: Campeonato[]
-  times: Time[]
-  partidas: Partida[]
-  participantes: Participante[]
-  nextId: number
-}
-
-const g = globalThis as typeof globalThis & { __store?: StoreState }
-if (!g.__store) {
-  g.__store = {
-    campeonatos: [...seedCampeonatos],
-    times: [...seedTimes],
-    partidas: [...seedPartidas],
-    participantes: derivarParticipantes(seedPartidas),
-    nextId: 100,
+export async function getCampeonato(id: string): Promise<Campeonato | undefined> {
+  const { rows } = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos WHERE id = ${Number(id)}`
+  if (rows.length === 0) return undefined
+  const r = rows[0]
+  return {
+    id: String(r.id),
+    nome: r.nome,
+    temporada: r.temporada,
+    status: r.status,
+    ...(r.zonas ? { zonas: r.zonas as Zonas } : {}),
   }
 }
-const state = g.__store
 
-export function getCampeonatos(): Campeonato[] {
-  return state.campeonatos
+export async function getTimes(): Promise<Time[]> {
+  const { rows } = await sql`SELECT id, nome, cidade FROM times ORDER BY nome`
+  return rows.map((r) => ({
+    id: String(r.id),
+    nome: r.nome,
+    ...(r.cidade ? { cidade: r.cidade } : {}),
+  }))
 }
 
-export function getCampeonato(id: string): Campeonato | undefined {
-  return state.campeonatos.find((c) => c.id === id)
+export async function getTimesDoCampeonato(campeonatoId: string): Promise<Time[]> {
+  const { rows } = await sql`
+    SELECT t.id, t.nome, t.cidade
+    FROM participantes p
+    JOIN times t ON t.id = p.time_id
+    WHERE p.campeonato_id = ${Number(campeonatoId)}
+    ORDER BY t.nome
+  `
+  return rows.map((r) => ({
+    id: String(r.id),
+    nome: r.nome,
+    ...(r.cidade ? { cidade: r.cidade } : {}),
+  }))
 }
 
-export function getTimes(): Time[] {
-  return state.times
+export async function getPartidas(campeonatoId: string): Promise<Partida[]> {
+  const { rows } = await sql`
+    SELECT
+      p.id, p.campeonato_id, p.rodada, p.data, p.gols_mandante, p.gols_visitante, p.status,
+      m.id AS m_id, m.nome AS m_nome, m.cidade AS m_cidade,
+      v.id AS v_id, v.nome AS v_nome, v.cidade AS v_cidade
+    FROM partidas p
+    JOIN times m ON m.id = p.mandante_id
+    JOIN times v ON v.id = p.visitante_id
+    WHERE p.campeonato_id = ${Number(campeonatoId)}
+    ORDER BY p.rodada, p.id
+  `
+  return rows.map(mapPartidaRow)
 }
 
-export function getTimesDoCampeonato(campeonatoId: string): Time[] {
-  return state.participantes
-    .filter((p) => p.campeonatoId === campeonatoId)
-    .map((p) => state.times.find((t) => t.id === p.timeId)!)
-    .filter(Boolean)
+export async function getPartida(id: string): Promise<Partida | undefined> {
+  const { rows } = await sql`
+    SELECT
+      p.id, p.campeonato_id, p.rodada, p.data, p.gols_mandante, p.gols_visitante, p.status,
+      m.id AS m_id, m.nome AS m_nome, m.cidade AS m_cidade,
+      v.id AS v_id, v.nome AS v_nome, v.cidade AS v_cidade
+    FROM partidas p
+    JOIN times m ON m.id = p.mandante_id
+    JOIN times v ON v.id = p.visitante_id
+    WHERE p.id = ${Number(id)}
+  `
+  if (rows.length === 0) return undefined
+  return mapPartidaRow(rows[0])
 }
 
-export function getPartidas(campeonatoId: string): Partida[] {
-  return state.partidas.filter((p) => p.campeonatoId === campeonatoId)
+function mapPartidaRow(r: Record<string, unknown>): Partida {
+  return {
+    id: String(r.id),
+    campeonatoId: String(r.campeonato_id),
+    rodada: r.rodada as number,
+    mandante: {
+      id: String(r.m_id),
+      nome: r.m_nome as string,
+      ...(r.m_cidade ? { cidade: r.m_cidade as string } : {}),
+    },
+    visitante: {
+      id: String(r.v_id),
+      nome: r.v_nome as string,
+      ...(r.v_cidade ? { cidade: r.v_cidade as string } : {}),
+    },
+    data: (r.data as string) ?? '',
+    ...(r.gols_mandante != null ? { golsMandante: r.gols_mandante as number } : {}),
+    ...(r.gols_visitante != null ? { golsVisitante: r.gols_visitante as number } : {}),
+    status: r.status as Partida['status'],
+  }
 }
 
-export function getPartida(id: string): Partida | undefined {
-  return state.partidas.find((p) => p.id === id)
-}
-
-export function addTime(nome: string, cidade?: string): Time {
-  const id = String(state.nextId++)
-  const time: Time = { id, nome, ...(cidade ? { cidade } : {}) }
-  state.times.push(time)
-  return time
+export async function addTime(nome: string, cidade?: string): Promise<Time> {
+  const { rows } = await sql`
+    INSERT INTO times (nome, cidade) VALUES (${nome}, ${cidade ?? null})
+    RETURNING id, nome, cidade
+  `
+  const r = rows[0]
+  return {
+    id: String(r.id),
+    nome: r.nome,
+    ...(r.cidade ? { cidade: r.cidade } : {}),
+  }
 }
 
 function gerarPartidasRoundRobin(
@@ -105,73 +144,93 @@ function gerarPartidasRoundRobin(
   return result
 }
 
-export function addCampeonato(
+export async function addCampeonato(
   nome: string,
   temporada: string,
   timeIds: string[],
   gerarPartidas?: boolean,
   zonas?: Zonas,
-): Campeonato {
-  const id = String(state.nextId++)
-  const campeonato: Campeonato = { id, nome, temporada, status: 'planejado', ...(zonas ? { zonas } : {}) }
-  state.campeonatos.push(campeonato)
+): Promise<Campeonato> {
+  const zonasJson = zonas ? JSON.stringify(zonas) : null
+
+  const { rows } = await sql`
+    INSERT INTO campeonatos (nome, temporada, status, zonas)
+    VALUES (${nome}, ${temporada}, 'planejado', ${zonasJson}::jsonb)
+    RETURNING id, nome, temporada, status, zonas
+  `
+  const campeonato: Campeonato = {
+    id: String(rows[0].id),
+    nome: rows[0].nome,
+    temporada: rows[0].temporada,
+    status: rows[0].status,
+    ...(rows[0].zonas ? { zonas: rows[0].zonas as Zonas } : {}),
+  }
+
   for (const timeId of timeIds) {
-    state.participantes = [...state.participantes, { campeonatoId: id, timeId }]
+    await sql`INSERT INTO participantes (campeonato_id, time_id) VALUES (${Number(campeonato.id)}, ${Number(timeId)})`
   }
 
   if (gerarPartidas) {
     const partidas = gerarPartidasRoundRobin(timeIds)
     for (const p of partidas) {
-      addPartida(id, p.rodada, p.mandanteId, p.visitanteId, '')
+      await sql`
+        INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status)
+        VALUES (${Number(campeonato.id)}, ${p.rodada}, ${Number(p.mandanteId)}, ${Number(p.visitanteId)}, '', 'agendada')
+      `
     }
   }
 
   return campeonato
 }
 
-export function addPartida(
+export async function addPartida(
   campeonatoId: string,
   rodada: number,
   mandanteId: string,
   visitanteId: string,
   data: string,
-): Partida {
-  const mandante = state.times.find((t) => t.id === mandanteId)!
-  const visitante = state.times.find((t) => t.id === visitanteId)!
-  const id = String(state.nextId++)
-  const partida: Partida = { id, campeonatoId, rodada, mandante, visitante, data, status: 'agendada' }
-  state.partidas = [...state.partidas, partida]
+): Promise<Partida> {
+  const { rows } = await sql`
+    INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status)
+    VALUES (${Number(campeonatoId)}, ${rodada}, ${Number(mandanteId)}, ${Number(visitanteId)}, ${data}, 'agendada')
+    RETURNING id
+  `
 
+  // Ensure both teams are participants
   for (const timeId of [mandanteId, visitanteId]) {
-    if (!state.participantes.some((p) => p.campeonatoId === campeonatoId && p.timeId === timeId)) {
-      state.participantes = [...state.participantes, { campeonatoId, timeId }]
-    }
+    await sql`
+      INSERT INTO participantes (campeonato_id, time_id)
+      VALUES (${Number(campeonatoId)}, ${Number(timeId)})
+      ON CONFLICT DO NOTHING
+    `
   }
 
-  return partida
+  const partida = await getPartida(String(rows[0].id))
+  return partida!
 }
 
-export function registrarResultado(
+export async function registrarResultado(
   partidaId: string,
   golsMandante: number,
   golsVisitante: number,
-): Partida {
-  state.partidas = state.partidas.map((p) =>
-    p.id === partidaId ? { ...p, golsMandante, golsVisitante, status: 'finalizada' } : p,
-  )
-  return state.partidas.find((p) => p.id === partidaId)!
+): Promise<Partida> {
+  await sql`
+    UPDATE partidas
+    SET gols_mandante = ${golsMandante}, gols_visitante = ${golsVisitante}, status = 'finalizada'
+    WHERE id = ${Number(partidaId)}
+  `
+  const partida = await getPartida(partidaId)
+  return partida!
 }
 
-export function deleteCampeonato(id: string): void {
-  state.campeonatos = state.campeonatos.filter((c) => c.id !== id)
-  state.participantes = state.participantes.filter((p) => p.campeonatoId !== id)
-  state.partidas = state.partidas.filter((p) => p.campeonatoId !== id)
+export async function deleteCampeonato(id: string): Promise<void> {
+  await sql`DELETE FROM campeonatos WHERE id = ${Number(id)}`
 }
 
-export function calcularClassificacao(campeonatoId: string): ClassificacaoItem[] {
-  const finalizadas = state.partidas.filter(
-    (p) => p.campeonatoId === campeonatoId && p.status === 'finalizada',
-  )
+export async function calcularClassificacao(campeonatoId: string): Promise<ClassificacaoItem[]> {
+  const times = await getTimesDoCampeonato(campeonatoId)
+  const partidas = await getPartidas(campeonatoId)
+  const finalizadas = partidas.filter((p) => p.status === 'finalizada')
 
   type Stats = {
     time: Time
@@ -186,9 +245,8 @@ export function calcularClassificacao(campeonatoId: string): ClassificacaoItem[]
 
   const statsMap = new Map<string, Stats>()
 
-  for (const part of state.participantes.filter((p) => p.campeonatoId === campeonatoId)) {
-    const time = state.times.find((t) => t.id === part.timeId)!
-    statsMap.set(part.timeId, {
+  for (const time of times) {
+    statsMap.set(time.id, {
       time,
       pontos: 0,
       jogos: 0,

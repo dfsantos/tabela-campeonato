@@ -4,13 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { addCampeonato, addPartida, addTime, deleteCampeonato, getTimesDoCampeonato, registrarResultado } from './store'
 import { validateZonas } from './zonas'
-import type { Zonas } from './fake-data'
+import type { Zonas } from './types'
 
 export async function criarTimeAction(formData: FormData): Promise<void> {
   const nome = formData.get('nome')?.toString().trim()
   const cidade = formData.get('cidade')?.toString().trim() || undefined
   if (!nome) throw new Error('Nome é obrigatório')
-  addTime(nome, cidade)
+  await addTime(nome, cidade)
   revalidatePath('/times')
   redirect('/times')
 }
@@ -42,7 +42,7 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
     if (error) throw new Error(error)
   }
 
-  const campeonato = addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas)
+  const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
 }
@@ -57,12 +57,12 @@ export async function registrarPartidaAction(formData: FormData): Promise<void> 
   if (mandanteId === visitanteId) throw new Error('Times devem ser diferentes')
   if (rodada < 1) throw new Error('Rodada inválida')
 
-  const participantes = getTimesDoCampeonato(campeonatoId).map((t) => t.id)
+  const participantes = (await getTimesDoCampeonato(campeonatoId)).map((t) => t.id)
   if (!participantes.includes(mandanteId) || !participantes.includes(visitanteId)) {
     throw new Error('Times devem ser participantes do campeonato')
   }
 
-  addPartida(campeonatoId, rodada, mandanteId, visitanteId, data)
+  await addPartida(campeonatoId, rodada, mandanteId, visitanteId, data)
   revalidatePath(`/campeonatos/${campeonatoId}`)
   redirect(`/campeonatos/${campeonatoId}?aba=partidas`)
 }
@@ -70,7 +70,7 @@ export async function registrarPartidaAction(formData: FormData): Promise<void> 
 export async function excluirCampeonatoAction(formData: FormData): Promise<void> {
   const id = formData.get('id') as string
   if (!id) throw new Error('ID do campeonato é obrigatório')
-  deleteCampeonato(id)
+  await deleteCampeonato(id)
   revalidatePath('/')
 }
 
@@ -82,7 +82,7 @@ export async function registrarResultadoAction(formData: FormData): Promise<void
 
   if (golsMandante < 0 || golsVisitante < 0) throw new Error('Gols inválidos')
 
-  registrarResultado(partidaId, golsMandante, golsVisitante)
+  await registrarResultado(partidaId, golsMandante, golsVisitante)
   revalidatePath(`/campeonatos/${campeonatoId}`)
   redirect(`/campeonatos/${campeonatoId}?aba=partidas`)
 }

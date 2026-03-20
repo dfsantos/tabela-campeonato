@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { getCampeonatos } from '@/lib/store'
 import CampeonatosList from './campeonatos-list'
 
-export default function HomePage() {
-  const campeonatos = getCampeonatos()
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {
+  const campeonatos = await getCampeonatos()
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto max-w-2xl px-4 py-12">
