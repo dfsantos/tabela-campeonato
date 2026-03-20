@@ -2,40 +2,40 @@ import { sql } from './db'
 import type { Campeonato, ClassificacaoItem, Partida, Time, Zonas } from './types'
 
 export async function getCampeonatos(): Promise<Campeonato[]> {
-  const { rows } = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos ORDER BY id`
+  const rows = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos ORDER BY id`
   return rows.map((r) => ({
     id: String(r.id),
-    nome: r.nome,
-    temporada: r.temporada,
-    status: r.status,
+    nome: r.nome as string,
+    temporada: r.temporada as string,
+    status: r.status as Campeonato['status'],
     ...(r.zonas ? { zonas: r.zonas as Zonas } : {}),
   }))
 }
 
 export async function getCampeonato(id: string): Promise<Campeonato | undefined> {
-  const { rows } = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos WHERE id = ${Number(id)}`
+  const rows = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos WHERE id = ${Number(id)}`
   if (rows.length === 0) return undefined
   const r = rows[0]
   return {
     id: String(r.id),
-    nome: r.nome,
-    temporada: r.temporada,
-    status: r.status,
+    nome: r.nome as string,
+    temporada: r.temporada as string,
+    status: r.status as Campeonato['status'],
     ...(r.zonas ? { zonas: r.zonas as Zonas } : {}),
   }
 }
 
 export async function getTimes(): Promise<Time[]> {
-  const { rows } = await sql`SELECT id, nome, cidade FROM times ORDER BY nome`
+  const rows = await sql`SELECT id, nome, cidade FROM times ORDER BY nome`
   return rows.map((r) => ({
     id: String(r.id),
-    nome: r.nome,
-    ...(r.cidade ? { cidade: r.cidade } : {}),
+    nome: r.nome as string,
+    ...(r.cidade ? { cidade: r.cidade as string } : {}),
   }))
 }
 
 export async function getTimesDoCampeonato(campeonatoId: string): Promise<Time[]> {
-  const { rows } = await sql`
+  const rows = await sql`
     SELECT t.id, t.nome, t.cidade
     FROM participantes p
     JOIN times t ON t.id = p.time_id
@@ -44,13 +44,13 @@ export async function getTimesDoCampeonato(campeonatoId: string): Promise<Time[]
   `
   return rows.map((r) => ({
     id: String(r.id),
-    nome: r.nome,
-    ...(r.cidade ? { cidade: r.cidade } : {}),
+    nome: r.nome as string,
+    ...(r.cidade ? { cidade: r.cidade as string } : {}),
   }))
 }
 
 export async function getPartidas(campeonatoId: string): Promise<Partida[]> {
-  const { rows } = await sql`
+  const rows = await sql`
     SELECT
       p.id, p.campeonato_id, p.rodada, p.data, p.gols_mandante, p.gols_visitante, p.status,
       m.id AS m_id, m.nome AS m_nome, m.cidade AS m_cidade,
@@ -65,7 +65,7 @@ export async function getPartidas(campeonatoId: string): Promise<Partida[]> {
 }
 
 export async function getPartida(id: string): Promise<Partida | undefined> {
-  const { rows } = await sql`
+  const rows = await sql`
     SELECT
       p.id, p.campeonato_id, p.rodada, p.data, p.gols_mandante, p.gols_visitante, p.status,
       m.id AS m_id, m.nome AS m_nome, m.cidade AS m_cidade,
@@ -79,7 +79,8 @@ export async function getPartida(id: string): Promise<Partida | undefined> {
   return mapPartidaRow(rows[0])
 }
 
-function mapPartidaRow(r: Record<string, unknown>): Partida {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapPartidaRow(r: Record<string, any>): Partida {
   return {
     id: String(r.id),
     campeonatoId: String(r.campeonato_id),
@@ -102,15 +103,15 @@ function mapPartidaRow(r: Record<string, unknown>): Partida {
 }
 
 export async function addTime(nome: string, cidade?: string): Promise<Time> {
-  const { rows } = await sql`
+  const rows = await sql`
     INSERT INTO times (nome, cidade) VALUES (${nome}, ${cidade ?? null})
     RETURNING id, nome, cidade
   `
   const r = rows[0]
   return {
     id: String(r.id),
-    nome: r.nome,
-    ...(r.cidade ? { cidade: r.cidade } : {}),
+    nome: r.nome as string,
+    ...(r.cidade ? { cidade: r.cidade as string } : {}),
   }
 }
 
@@ -153,16 +154,16 @@ export async function addCampeonato(
 ): Promise<Campeonato> {
   const zonasJson = zonas ? JSON.stringify(zonas) : null
 
-  const { rows } = await sql`
+  const rows = await sql`
     INSERT INTO campeonatos (nome, temporada, status, zonas)
     VALUES (${nome}, ${temporada}, 'planejado', ${zonasJson}::jsonb)
     RETURNING id, nome, temporada, status, zonas
   `
   const campeonato: Campeonato = {
     id: String(rows[0].id),
-    nome: rows[0].nome,
-    temporada: rows[0].temporada,
-    status: rows[0].status,
+    nome: rows[0].nome as string,
+    temporada: rows[0].temporada as string,
+    status: rows[0].status as Campeonato['status'],
     ...(rows[0].zonas ? { zonas: rows[0].zonas as Zonas } : {}),
   }
 
@@ -190,7 +191,7 @@ export async function addPartida(
   visitanteId: string,
   data: string,
 ): Promise<Partida> {
-  const { rows } = await sql`
+  const rows = await sql`
     INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status)
     VALUES (${Number(campeonatoId)}, ${rodada}, ${Number(mandanteId)}, ${Number(visitanteId)}, ${data}, 'agendada')
     RETURNING id
