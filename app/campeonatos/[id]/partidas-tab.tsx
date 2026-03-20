@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { type Partida } from '@/lib/fake-data'
+import { type Partida } from '@/lib/types'
 
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-')

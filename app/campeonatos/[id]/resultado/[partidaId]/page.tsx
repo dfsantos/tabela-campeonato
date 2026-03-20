@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { registrarResultadoAction } from '@/lib/actions'
 import { getCampeonato, getPartida } from '@/lib/store'
 
+export const dynamic = 'force-dynamic'
+
 type Props = {
   params: Promise<{ id: string; partidaId: string }>
 }
@@ -10,8 +12,8 @@ type Props = {
 export default async function ResultadoPage({ params }: Props) {
   const { id, partidaId } = await params
 
-  const partida = getPartida(partidaId)
-  const campeonato = getCampeonato(id)
+  const partida = await getPartida(partidaId)
+  const campeonato = await getCampeonato(id)
   if (!partida || !campeonato) notFound()
 
   return (

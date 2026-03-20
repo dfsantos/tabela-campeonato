@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useMemo } from 'react'
-import type { Time } from '@/lib/fake-data'
+import type { Time } from '@/lib/types'
 import { criarCampeonatoAction } from '@/lib/actions'
 
 export default function NovoCampeonatoForm({ times }: { times: Time[] }) {

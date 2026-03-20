@@ -1,4 +1,4 @@
-import type { Zonas } from './fake-data'
+import type { Zonas } from './types'
 
 export type ZonaName = 'campeao' | 'elite' | 'segundoPelotao' | 'rebaixamento' | null
 

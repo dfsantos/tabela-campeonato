@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { getTimes } from '@/lib/store'
 
-export default function TimesPage() {
-  const times = getTimes()
+export const dynamic = 'force-dynamic'
+
+export default async function TimesPage() {
+  const times = await getTimes()
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">

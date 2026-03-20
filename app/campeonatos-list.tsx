@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { excluirCampeonatoAction } from '@/lib/actions'
-import type { Campeonato, CampeonatoStatus } from '@/lib/fake-data'
+import type { Campeonato, CampeonatoStatus } from '@/lib/types'
 
 const statusConfig: Record<CampeonatoStatus, { label: string; className: string }> = {
   em_andamento: {

@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { CampeonatoStatus, ClassificacaoItem, Zonas } from '@/lib/fake-data'
+import type { CampeonatoStatus, ClassificacaoItem, Zonas } from '@/lib/types'
 import { calcularClassificacao, getCampeonato, getPartidas } from '@/lib/store'
 import { getZona, zonaTextClass } from '@/lib/zonas'
 import { PartidasTab } from './partidas-tab'
+
+export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -107,12 +109,12 @@ export default async function CampeonatoPage({ params, searchParams }: Props) {
   const { id } = await params
   const { aba = 'classificacao' } = await searchParams
 
-  const campeonato = getCampeonato(id)
+  const campeonato = await getCampeonato(id)
   if (!campeonato) notFound()
 
   const status = statusConfig[campeonato.status]
-  const classificacao = calcularClassificacao(id)
-  const partidasList = getPartidas(id)
+  const classificacao = await calcularClassificacao(id)
+  const partidasList = await getPartidas(id)
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
