@@ -64,3 +64,18 @@ export async function registrarResultadoAction(formData: FormData): Promise<void
   revalidatePath(`/campeonatos/${campeonatoId}`)
   redirect(`/campeonatos/${campeonatoId}/partidas`)
 }
+
+export async function registrarResultadoInlineAction(
+  partidaId: string,
+  campeonatoId: string,
+  golsMandante: number,
+  golsVisitante: number,
+): Promise<{ success: boolean; error?: string }> {
+  if (golsMandante < 0 || golsVisitante < 0) {
+    return { success: false, error: 'Gols inválidos' }
+  }
+
+  await registrarResultado(partidaId, golsMandante, golsVisitante)
+  revalidatePath(`/campeonatos/${campeonatoId}`)
+  return { success: true }
+}
