@@ -62,5 +62,5 @@ export async function registrarResultadoAction(formData: FormData): Promise<void
 
   await registrarResultado(partidaId, golsMandante, golsVisitante)
   revalidatePath(`/campeonatos/${campeonatoId}`)
-  redirect(`/campeonatos/${campeonatoId}?aba=partidas`)
+  redirect(`/campeonatos/${campeonatoId}/partidas`)
 }

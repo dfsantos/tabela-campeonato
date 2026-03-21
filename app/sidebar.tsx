@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const navItems = [
   {
@@ -31,6 +31,21 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [campeonatoNome, setCampeonatoNome] = useState<string | null>(null)
+
+  const campeonatoMatch = pathname.match(/^\/campeonatos\/([^/]+)/)
+  const campeonatoId = campeonatoMatch?.[1]
+
+  useEffect(() => {
+    if (!campeonatoId || campeonatoId === 'novo') {
+      setCampeonatoNome(null)
+      return
+    }
+    fetch(`/api/campeonatos/${campeonatoId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setCampeonatoNome(data?.nome ?? null))
+      .catch(() => setCampeonatoNome(null))
+  }, [campeonatoId])
 
   const sidebarContent = (
     <>
@@ -46,8 +61,8 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-1 px-3">
+      {/* Nav — menus gerais */}
+      <nav className="flex flex-col gap-1 px-3">
         {navItems.map((item) => {
           const active = item.isActive(pathname)
           return (
@@ -67,6 +82,64 @@ export function Sidebar() {
           )
         })}
       </nav>
+
+      {/* Seção contextual — campeonato aberto */}
+      {(() => {
+        if (!campeonatoId || campeonatoId === 'novo') return null
+
+        const campeonatoItems = [
+          {
+            label: 'Classificação',
+            href: `/campeonatos/${campeonatoId}/classificacao`,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <path d="M2 12H5V6H2V12ZM6.5 12H9.5V2H6.5V12ZM11 12H14V8H11V12Z" fill="currentColor" />
+              </svg>
+            ),
+          },
+          {
+            label: 'Partidas',
+            href: `/campeonatos/${campeonatoId}/partidas`,
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M2 6H14M6 2V14" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            ),
+          },
+        ]
+
+        return (
+          <>
+            <div className="mx-5 my-4 border-t border-primary-fixed-dim/20" />
+            <div className="px-3">
+              <p className="mb-2 px-3 font-label text-[10px] font-bold uppercase tracking-widest text-primary-fixed-dim/40">
+                {campeonatoNome ?? 'Campeonato'}
+              </p>
+              <nav className="flex flex-col gap-1">
+                {campeonatoItems.map((item) => {
+                  const active = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                        active
+                          ? 'border-l-4 border-primary-fixed bg-primary-container text-primary-fixed'
+                          : 'text-primary-fixed-dim/60 hover:bg-primary-container hover:text-on-primary'
+                      }`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+            </div>
+          </>
+        )
+      })()}
     </>
   )
 
