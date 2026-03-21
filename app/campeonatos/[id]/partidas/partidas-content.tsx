@@ -4,17 +4,12 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { type Partida } from '@/lib/types'
 
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-')
-  return `${day}/${month}/${year}`
-}
-
 interface Props {
   partidas: Partida[]
   campeonatoId: string
 }
 
-export function PartidasTab({ partidas, campeonatoId }: Props) {
+export function PartidasContent({ partidas, campeonatoId }: Props) {
   const porRodada = partidas.reduce<Record<number, Partida[]>>((acc, p) => {
     ;(acc[p.rodada] ??= []).push(p)
     return acc
@@ -108,7 +103,7 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
             </div>
 
             <div className="ml-4 flex shrink-0 items-center gap-3">
-              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">{formatDate(p.data)}</span>
+
               {p.status === 'finalizada' ? (
                 <span className="rounded-full bg-primary-fixed px-2.5 py-0.5 font-label text-[10px] font-bold uppercase tracking-widest text-on-primary-fixed-variant">
                   Finalizada

@@ -18,15 +18,6 @@ export default async function ResultadoPage({ params }: Props) {
 
   return (
     <div className="max-w-lg">
-      {/* Breadcrumb */}
-      <nav className="mb-6 font-label text-xs text-on-surface-variant">
-        <Link href="/" className="transition-colors hover:text-primary">Campeonatos</Link>
-        <span className="mx-1.5">/</span>
-        <Link href={`/campeonatos/${id}?aba=partidas`} className="transition-colors hover:text-primary">{campeonato.nome}</Link>
-        <span className="mx-1.5">/</span>
-        <span className="text-on-surface">Resultado</span>
-      </nav>
-
       <div className="rounded-2xl bg-surface-container-lowest p-6 shadow-[0_4px_32px_rgba(20,27,43,0.06)]">
         <h1 className="mb-1 font-headline text-lg font-bold text-on-surface">
           Registrar resultado
@@ -91,7 +82,7 @@ export default async function ResultadoPage({ params }: Props) {
               Salvar resultado
             </button>
             <Link
-              href={`/campeonatos/${id}?aba=partidas`}
+              href={`/campeonatos/${id}/partidas`}
               className="rounded-lg bg-secondary-container px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-secondary transition-colors hover:bg-surface-container-high"
             >
               Cancelar
