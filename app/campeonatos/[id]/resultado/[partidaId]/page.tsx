@@ -17,90 +17,87 @@ export default async function ResultadoPage({ params }: Props) {
   if (!partida || !campeonato) notFound()
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <div className="mx-auto max-w-md px-4 py-12">
-        <Link
-          href={`/campeonatos/${id}?aba=partidas`}
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-200"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8.5 3L4.5 7L8.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {campeonato.nome}
-        </Link>
+    <div className="max-w-lg">
+      {/* Breadcrumb */}
+      <nav className="mb-6 font-label text-xs text-on-surface-variant">
+        <Link href="/" className="transition-colors hover:text-primary">Campeonatos</Link>
+        <span className="mx-1.5">/</span>
+        <Link href={`/campeonatos/${id}?aba=partidas`} className="transition-colors hover:text-primary">{campeonato.nome}</Link>
+        <span className="mx-1.5">/</span>
+        <span className="text-on-surface">Resultado</span>
+      </nav>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <h1 className="mb-1 text-base font-semibold text-zinc-900 dark:text-zinc-50">
-            Registrar resultado
-          </h1>
-          <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-            Rodada {partida.rodada} · {partida.data.split('-').reverse().join('/')}
-          </p>
+      <div className="rounded-2xl bg-surface-container-lowest p-6 shadow-[0_4px_32px_rgba(20,27,43,0.06)]">
+        <h1 className="mb-1 font-headline text-lg font-bold text-on-surface">
+          Registrar resultado
+        </h1>
+        <p className="mb-6 font-label text-xs uppercase tracking-widest text-on-surface-variant">
+          Rodada {partida.rodada} · {partida.data.split('-').reverse().join('/')}
+        </p>
 
-          <div className="mb-6 flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-800/50">
-            <span className="flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {partida.mandante.nome}
-            </span>
-            <span className="text-xs font-medium text-zinc-400 dark:text-zinc-600">×</span>
-            <span className="flex-1 text-right text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {partida.visitante.nome}
-            </span>
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl bg-surface-container-low px-4 py-3">
+          <span className="flex-1 text-sm font-medium text-on-surface">
+            {partida.mandante.nome}
+          </span>
+          <span className="text-xs font-medium text-primary/20">×</span>
+          <span className="flex-1 text-right text-sm font-medium text-on-surface">
+            {partida.visitante.nome}
+          </span>
+        </div>
+
+        <form action={registrarResultadoAction}>
+          <input type="hidden" name="partidaId" value={partida.id} />
+          <input type="hidden" name="campeonatoId" value={id} />
+
+          <div className="mb-6 flex items-end gap-4">
+            <div className="flex-1">
+              <label className="mb-1.5 block font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                {partida.mandante.nome}
+              </label>
+              <input
+                type="number"
+                name="golsMandante"
+                min={0}
+                max={99}
+                required
+                placeholder="0"
+                className="w-full rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-center text-2xl font-semibold text-on-surface outline-none transition-colors focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <div className="mb-2.5 shrink-0 text-lg font-medium text-primary/20">×</div>
+
+            <div className="flex-1">
+              <label className="mb-1.5 block text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                {partida.visitante.nome}
+              </label>
+              <input
+                type="number"
+                name="golsVisitante"
+                min={0}
+                max={99}
+                required
+                placeholder="0"
+                className="w-full rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-center text-2xl font-semibold text-on-surface outline-none transition-colors focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+              />
+            </div>
           </div>
 
-          <form action={registrarResultadoAction}>
-            <input type="hidden" name="partidaId" value={partida.id} />
-            <input type="hidden" name="campeonatoId" value={id} />
-
-            <div className="mb-6 flex items-end gap-4">
-              <div className="flex-1">
-                <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  {partida.mandante.nome}
-                </label>
-                <input
-                  type="number"
-                  name="golsMandante"
-                  min={0}
-                  max={99}
-                  required
-                  placeholder="0"
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-center text-2xl font-semibold text-zinc-900 outline-none transition-colors focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500"
-                />
-              </div>
-
-              <div className="mb-2.5 shrink-0 text-lg font-medium text-zinc-300 dark:text-zinc-700">×</div>
-
-              <div className="flex-1">
-                <label className="mb-1.5 block text-right text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  {partida.visitante.nome}
-                </label>
-                <input
-                  type="number"
-                  name="golsVisitante"
-                  min={0}
-                  max={99}
-                  required
-                  placeholder="0"
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-center text-2xl font-semibold text-zinc-900 outline-none transition-colors focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                className="flex-1 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                Salvar resultado
-              </button>
-              <Link
-                href={`/campeonatos/${id}?aba=partidas`}
-                className="rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-              >
-                Cancelar
-              </Link>
-            </div>
-          </form>
-        </div>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-gradient-to-r from-primary to-primary-container px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity hover:opacity-90"
+            >
+              Salvar resultado
+            </button>
+            <Link
+              href={`/campeonatos/${id}?aba=partidas`}
+              className="rounded-lg bg-secondary-container px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-secondary transition-colors hover:bg-surface-container-high"
+            >
+              Cancelar
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   )

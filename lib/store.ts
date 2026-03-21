@@ -193,7 +193,7 @@ export async function addCampeonato(
   return campeonato
 }
 
-export async function addPartida(
+async function addPartida(
   campeonatoId: string,
   rodada: number,
   mandanteId: string,

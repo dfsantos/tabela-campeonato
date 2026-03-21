@@ -13,10 +13,17 @@ export function getZona(posicao: number, totalTimes: number, zonas: Zonas | unde
 }
 
 export const zonaTextClass: Record<NonNullable<ZonaName>, string> = {
-  campeao:        'text-amber-500 font-semibold',
-  elite:          'text-emerald-500',
-  segundoPelotao: 'text-sky-500',
-  rebaixamento:   'text-red-500',
+  campeao:        'text-amber-600 font-bold',
+  elite:          'text-primary font-semibold',
+  segundoPelotao: 'text-sky-600 font-semibold',
+  rebaixamento:   'text-error font-semibold',
+}
+
+export const zonaBorderClass: Record<NonNullable<ZonaName>, string> = {
+  campeao:        'border-l-4 border-amber-500 bg-amber-50/30',
+  elite:          'border-l-4 border-primary bg-primary-fixed/10',
+  segundoPelotao: 'border-l-4 border-sky-500 bg-sky-50/30',
+  rebaixamento:   'border-l-4 border-error bg-error-container/20',
 }
 
 export function validateZonas(zonas: Zonas, totalTimes: number): string | null {

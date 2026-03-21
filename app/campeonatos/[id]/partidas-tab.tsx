@@ -31,7 +31,7 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
 
   if (partidas.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-zinc-400 dark:text-zinc-600">
+      <p className="py-12 text-center text-sm text-on-surface-variant">
         Nenhuma partida cadastrada.
       </p>
     )
@@ -47,7 +47,7 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
         <button
           onClick={() => setRodadaIdx((i) => i - 1)}
           disabled={rodadaIdx === 0}
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-30 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+          className="flex items-center gap-1.5 rounded-lg bg-secondary-container px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M8.5 3L4.5 7L8.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -55,9 +55,9 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
           Anterior
         </button>
 
-        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        <span className="font-headline text-sm font-bold text-on-surface">
           Rodada {rodadaAtual}
-          <span className="ml-1.5 text-xs font-normal text-zinc-400 dark:text-zinc-600">
+          <span className="ml-1.5 font-label text-[10px] font-normal uppercase tracking-widest text-on-surface-variant">
             de {rodadas.length}
           </span>
         </span>
@@ -65,7 +65,7 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
         <button
           onClick={() => setRodadaIdx((i) => i + 1)}
           disabled={rodadaIdx === rodadas.length - 1}
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-30 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+          className="flex items-center gap-1.5 rounded-lg bg-secondary-container px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-30"
         >
           Próxima
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -79,28 +79,28 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
         {partidasDaRodada.map((p) => (
           <li
             key={p.id}
-            className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-3.5 dark:border-zinc-800 dark:bg-zinc-900"
+            className="flex items-center justify-between rounded-xl bg-surface-container-lowest px-5 py-3.5 shadow-[0_4px_32px_rgba(20,27,43,0.06)]"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
               {p.status === 'finalizada' ? (
                 <div className="flex items-center gap-3 text-sm">
-                  <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="truncate font-medium text-on-surface">
                     {p.mandante.nome}
                   </span>
-                  <span className="shrink-0 rounded-md bg-zinc-100 px-2.5 py-0.5 font-mono font-semibold text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
-                    {p.golsMandante} × {p.golsVisitante}
+                  <span className="shrink-0 rounded-lg bg-surface-container px-2.5 py-0.5 font-headline font-bold text-on-surface">
+                    {p.golsMandante} <span className="text-primary/20">×</span> {p.golsVisitante}
                   </span>
-                  <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="truncate font-medium text-on-surface">
                     {p.visitante.nome}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 text-sm">
-                  <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="truncate font-medium text-on-surface">
                     {p.mandante.nome}
                   </span>
-                  <span className="shrink-0 text-zinc-400 dark:text-zinc-600">×</span>
-                  <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="shrink-0 text-primary/20">×</span>
+                  <span className="truncate font-medium text-on-surface">
                     {p.visitante.nome}
                   </span>
                 </div>
@@ -108,15 +108,15 @@ export function PartidasTab({ partidas, campeonatoId }: Props) {
             </div>
 
             <div className="ml-4 flex shrink-0 items-center gap-3">
-              <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDate(p.data)}</span>
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">{formatDate(p.data)}</span>
               {p.status === 'finalizada' ? (
-                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                <span className="rounded-full bg-primary-fixed px-2.5 py-0.5 font-label text-[10px] font-bold uppercase tracking-widest text-on-primary-fixed-variant">
                   Finalizada
                 </span>
               ) : (
                 <Link
                   href={`/campeonatos/${campeonatoId}/resultado/${p.id}`}
-                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+                  className="rounded-lg bg-primary px-3 py-1 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity hover:opacity-90"
                 >
                   Registrar resultado
                 </Link>

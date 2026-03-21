@@ -7,34 +7,34 @@ import type { Campeonato, CampeonatoStatus } from '@/lib/types'
 const statusConfig: Record<CampeonatoStatus, { label: string; className: string }> = {
   em_andamento: {
     label: 'Em andamento',
-    className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    className: 'bg-primary-fixed text-on-primary-fixed-variant',
   },
   planejado: {
     label: 'Planejado',
-    className: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
+    className: 'bg-secondary-fixed text-on-secondary-fixed-variant',
   },
   finalizado: {
     label: 'Finalizado',
-    className: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500',
+    className: 'bg-surface-container-high text-on-surface-variant',
   },
 }
 
 export default function CampeonatosList({ campeonatos }: { campeonatos: Campeonato[] }) {
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {campeonatos.map((c) => {
         const status = statusConfig[c.status]
         return (
           <li key={c.id} className="flex items-center gap-2">
             <Link
               href={`/campeonatos/${c.id}`}
-              className="flex flex-1 items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+              className="flex flex-1 items-center justify-between rounded-xl bg-surface-container-lowest px-5 py-4 shadow-[0_4px_32px_rgba(20,27,43,0.06)] transition-colors hover:bg-surface-container-low"
             >
               <div>
-                <p className="font-medium text-zinc-900 dark:text-zinc-100">{c.nome}</p>
-                <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{c.temporada}</p>
+                <p className="font-headline font-semibold text-on-surface">{c.nome}</p>
+                <p className="mt-0.5 font-label text-xs text-on-surface-variant">{c.temporada}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${status.className}`}>
+              <span className={`rounded-full px-3 py-1 font-label text-[10px] font-bold uppercase tracking-widest ${status.className}`}>
                 {status.label}
               </span>
             </Link>
@@ -49,7 +49,7 @@ export default function CampeonatosList({ campeonatos }: { campeonatos: Campeona
               <input type="hidden" name="id" value={c.id} />
               <button
                 type="submit"
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-zinc-700 dark:text-zinc-500 dark:hover:border-red-800 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                className="rounded-lg bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant transition-colors hover:bg-error-container hover:text-on-error-container"
               >
                 Excluir
               </button>
