@@ -2,14 +2,14 @@
 
 ## Status atual
 
-Lógica funcional implementada. Registro de partidas, registro de resultados e cálculo dinâmico de classificação estão operacionais. Interface usa dados reais do store em memória.
+MVP funcional com persistência em Vercel Postgres. Registro de partidas, registro de resultados (formulário e inline) e cálculo dinâmico de classificação estão operacionais. Design system implementado (paleta emerald, tipografia Space Grotesk/Inter/Manrope). Navegação com sidebar contextual e layout responsivo.
 
 ## Pendente antes de iniciar implementação
 
 - [x] Definir stack técnica — Next.js + TypeScript, dados em memória na v1
 - [x] Definir estrutura de diretórios do projeto
 - [x] Definir organização interna de app/ (rotas, componentes, camada de dados)
-- [ ] Definir banco de dados e ORM (quando sair da camada em memória)
+- [x] Definir banco de dados e ORM — Vercel Postgres, SQL direto via pacote `postgres` (sem ORM)
 - [ ] Definir convenções de nomenclatura (arquivos, funções, variáveis)
 
 ## Concluído
@@ -20,11 +20,11 @@ Lógica funcional implementada. Registro de partidas, registro de resultados e c
 - Tela 3: formulários de nova partida e registro de resultado (desabilitados)
 
 ### Lógica funcional das telas
-- `lib/fake-data.ts` — seed puro (types + arrays exportados)
+- `lib/fake-data.ts` — seed puro (types + arrays exportados) _(renomeado para `lib/types.ts` na migração)_
 - `lib/store.ts` — store em memória: queries, mutations (`addPartida`, `registrarResultado`), `calcularClassificacao`
 - `lib/actions.ts` — Server Actions: `registrarPartidaAction`, `registrarResultadoAction`
 - `app/page.tsx` — usa `getCampeonatos()` do store
-- `app/campeonatos/[id]/page.tsx` — usa `calcularClassificacao()` do store
+- `app/campeonatos/[id]/page.tsx` — usa `calcularClassificacao()` do store _(refatorado para redirect na etapa de sub-rotas)_
 - `app/campeonatos/[id]/resultado/[partidaId]/page.tsx` — convertido para Server Component com form action
 - `app/campeonatos/[id]/partidas/nova/page.tsx` + `nova-partida-form.tsx` — separado em Server + Client Component; botão habilitado
 
@@ -51,13 +51,40 @@ Lógica funcional implementada. Registro de partidas, registro de resultados e c
 ### Migração de store em memória para Vercel Postgres
 - `lib/fake-data.ts` renomeado para `lib/types.ts` — apenas types exportados
 - `lib/db/schema.sql` — DDL das tabelas (times, campeonatos, participantes, partidas)
-- `lib/db/index.ts` — re-exporta `sql` do `@vercel/postgres`
+- `lib/db/index.ts` — conexão Postgres via pacote `postgres` (v3.4.8)
 - `lib/db/seed.ts` — script executável que cria tabelas e insere dados seed (`npm run db:seed`)
-- `lib/store.ts` — reescrito: todas as funções agora são `async` e usam SQL via `@vercel/postgres`
+- `lib/store.ts` — reescrito: todas as funções agora são `async` e usam SQL via pacote `postgres`
 - `lib/actions.ts` — adicionado `await` nas chamadas ao store
 - Todas as pages com queries ao store agora usam `await` + `export const dynamic = 'force-dynamic'`
 - Todos os imports de `@/lib/fake-data` atualizados para `@/lib/types`
 - IDs mantidos como `string` na interface (convertidos via `String(id)` no store)
+
+### Refatoração para sub-rotas com sidebar contextual
+- `app/campeonatos/[id]/page.tsx` — redireciona para `/classificacao`
+- `app/campeonatos/[id]/layout.tsx` — layout com breadcrumbs e header do campeonato
+- `app/campeonatos/[id]/classificacao/page.tsx` — tabela de classificação com zonas
+- `app/campeonatos/[id]/partidas/page.tsx` + `partidas-content.tsx` — lista de partidas com inputs inline
+- `app/sidebar.tsx` — sidebar com navegação contextual (desktop + hamburger mobile)
+- `app/api/campeonatos/[id]/route.ts` — API para nome do campeonato (usado pela sidebar)
+
+### Inputs inline de placar
+- `app/campeonatos/[id]/partidas/partidas-content.tsx` — Client Component com campos de gol inline para registro direto
+- `lib/actions.ts` — `registrarResultadoInlineAction` retorna JSON em vez de redirect
+
+### Sistema de zonas de classificação
+- `lib/zonas.ts` — lógica de validação e estilização de zonas (campeão, elite, 2º pelotão, rebaixamento)
+- `lib/types.ts` — type `Zonas` adicionado
+- `lib/store.ts` — `addCampeonato` aceita `zonas` (armazenado como JSONB no banco)
+- Visualização na tabela de classificação com cores por zona
+
+### Exclusão de campeonato
+- `lib/actions.ts` — `excluirCampeonatoAction` com cascade delete
+- `lib/store.ts` — `deleteCampeonato(id)`
+
+### Design system implementado
+- `app/globals.css` — paleta emerald, tipografia (Space Grotesk, Inter, Manrope), variáveis CSS, tema Tailwind v4
+- Layout responsivo com sidebar (desktop) e hamburger menu (mobile)
+- Tonal layering para elevação (sem borders de 1px), gradient buttons
 
 ## Em andamento
 
