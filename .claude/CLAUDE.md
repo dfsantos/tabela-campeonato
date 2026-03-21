@@ -25,8 +25,13 @@ Toda a especificação do projeto está em `.claude/rules/`. Leia os arquivos re
 | `rules/behavior.workflow.md`    | Como propor e implementar tarefas; quando perguntar                |
 | `rules/behavior.testing.md`     | O que testar obrigatoriamente (núcleo: recálculo de classificação) |
 | `rules/behavior.conventions.md` | Convenções técnicas da stack (a preencher)                         |
+| `rules/ui.design.md`           | Design system: paleta, tipografia, elevação, componentes e regras  |
 | `rules/decisions.md`            | Decisões arquiteturais registradas com data e raciocínio           |
 | `rules/progress.md`             | Status atual e tarefas pendentes                                   |
+
+## Referência visual
+
+A pasta `docs/stitch_design/` contém mockups HTML + screenshots das telas de referência: `classificacao/`, `dashboard/`, `tabela_de_jogos/`, `cadastro/`. Consulte antes de implementar mudanças visuais.
 
 ## Regra crítica de domínio
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addCampeonato, addPartida, addTime, deleteCampeonato, getTimesDoCampeonato, registrarResultado } from './store'
+import { addCampeonato, addTime, deleteCampeonato, registrarResultado } from './store'
 import { validateZonas } from './zonas'
 import type { Zonas } from './types'
 
@@ -25,8 +25,6 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
   if (timeIds.length > 24) throw new Error('Um campeonato pode ter no máximo 24 times')
 
-  const gerarPartidas = formData.get('gerarPartidas') === 'on'
-
   const campeao = formData.get('zonaCampeao') === 'on'
   const elite = Number(formData.get('zonaElite')) || undefined
   const segundoPelotao = Number(formData.get('zonaSegundoPelotao')) || undefined
@@ -42,29 +40,9 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
     if (error) throw new Error(error)
   }
 
-  const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas)
+  const campeonato = await addCampeonato(nome, temporada, timeIds, true, zonas)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
-}
-
-export async function registrarPartidaAction(formData: FormData): Promise<void> {
-  const campeonatoId = formData.get('campeonatoId') as string
-  const rodada = parseInt(formData.get('rodada') as string, 10)
-  const mandanteId = formData.get('mandanteId') as string
-  const visitanteId = formData.get('visitanteId') as string
-  const data = formData.get('data') as string
-
-  if (mandanteId === visitanteId) throw new Error('Times devem ser diferentes')
-  if (rodada < 1) throw new Error('Rodada inválida')
-
-  const participantes = (await getTimesDoCampeonato(campeonatoId)).map((t) => t.id)
-  if (!participantes.includes(mandanteId) || !participantes.includes(visitanteId)) {
-    throw new Error('Times devem ser participantes do campeonato')
-  }
-
-  await addPartida(campeonatoId, rodada, mandanteId, visitanteId, data)
-  revalidatePath(`/campeonatos/${campeonatoId}`)
-  redirect(`/campeonatos/${campeonatoId}?aba=partidas`)
 }
 
 export async function excluirCampeonatoAction(formData: FormData): Promise<void> {
