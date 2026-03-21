@@ -39,4 +39,14 @@ A classificação é **sempre derivada dos resultados das partidas** — nunca a
 
 ## Workflow
 
-Antes de tarefas com impacto arquitetural (alteração de schema, novo padrão, mudança no fluxo de recálculo): propor abordagem e aguardar aprovação. Ao concluir uma tarefa, atualizar `rules/progress.md` e, se houver decisão técnica relevante, registrar em `rules/decisions.md`. Ver `rules/behavior.workflow.md`.
+Antes de tarefas com impacto arquitetural (alteração de schema, novo padrão, mudança no fluxo de recálculo): propor abordagem e aguardar aprovação. Ver `rules/behavior.workflow.md`.
+
+## Checklist pré-PR (obrigatório)
+
+Antes de criar um PR, sempre:
+
+1. Atualizar `rules/progress.md` — adicionar o que foi implementado na seção "Concluído" com os arquivos relevantes
+2. Se houve decisão técnica relevante, registrar em `rules/decisions.md`
+3. Só então criar o commit e o PR
+
+**Nunca concluir uma feature ou fix sem registrar em `rules/progress.md`.** Isso é parte do fluxo, não uma etapa opcional.
