@@ -1,5 +1,5 @@
 import { sql } from './db'
-import type { Campeonato, ClassificacaoItem, Pais, Partida, Time, Zonas } from './types'
+import type { Campeonato, CampeonatoFormato, ClassificacaoItem, Pais, Partida, Time, Zonas } from './types'
 
 function parseJsonb<T>(value: unknown): T | undefined {
   if (value == null) return undefined
@@ -8,7 +8,7 @@ function parseJsonb<T>(value: unknown): T | undefined {
 }
 
 export async function getCampeonatos(): Promise<Campeonato[]> {
-  const rows = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos ORDER BY id`
+  const rows = await sql`SELECT id, nome, temporada, status, formato, zonas FROM campeonatos ORDER BY id`
   return rows.map((r) => {
     const zonas = parseJsonb<Zonas>(r.zonas)
     return {
@@ -16,13 +16,14 @@ export async function getCampeonatos(): Promise<Campeonato[]> {
       nome: r.nome as string,
       temporada: r.temporada as string,
       status: r.status as Campeonato['status'],
+      formato: (r.formato as CampeonatoFormato) ?? 'liga',
       ...(zonas ? { zonas } : {}),
     }
   })
 }
 
 export async function getCampeonato(id: string): Promise<Campeonato | undefined> {
-  const rows = await sql`SELECT id, nome, temporada, status, zonas FROM campeonatos WHERE id = ${Number(id)}`
+  const rows = await sql`SELECT id, nome, temporada, status, formato, zonas FROM campeonatos WHERE id = ${Number(id)}`
   if (rows.length === 0) return undefined
   const r = rows[0]
   const zonas = parseJsonb<Zonas>(r.zonas)
@@ -31,6 +32,7 @@ export async function getCampeonato(id: string): Promise<Campeonato | undefined>
     nome: r.nome as string,
     temporada: r.temporada as string,
     status: r.status as Campeonato['status'],
+    formato: (r.formato as CampeonatoFormato) ?? 'liga',
     ...(zonas ? { zonas } : {}),
   }
 }
@@ -183,11 +185,13 @@ export async function addCampeonato(
   timeIds: string[],
   gerarPartidas?: boolean,
   zonas?: Zonas,
+  formato?: CampeonatoFormato,
 ): Promise<Campeonato> {
+  const fmt = formato ?? 'liga'
   const rows = await sql`
-    INSERT INTO campeonatos (nome, temporada, status, zonas)
-    VALUES (${nome}, ${temporada}, 'planejado', ${zonas ? sql.json(zonas as never) : null})
-    RETURNING id, nome, temporada, status, zonas
+    INSERT INTO campeonatos (nome, temporada, status, formato, zonas)
+    VALUES (${nome}, ${temporada}, 'planejado', ${fmt}, ${zonas ? sql.json(zonas as never) : null})
+    RETURNING id, nome, temporada, status, formato, zonas
   `
   const zonasParsed = parseJsonb<Zonas>(rows[0].zonas)
   const campeonato: Campeonato = {
@@ -195,6 +199,7 @@ export async function addCampeonato(
     nome: rows[0].nome as string,
     temporada: rows[0].temporada as string,
     status: rows[0].status as Campeonato['status'],
+    formato: (rows[0].formato as CampeonatoFormato) ?? 'liga',
     ...(zonasParsed ? { zonas: zonasParsed } : {}),
   }
 

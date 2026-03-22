@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS campeonatos (
   nome TEXT NOT NULL,
   temporada TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'planejado',
+  formato TEXT NOT NULL DEFAULT 'liga',
   zonas JSONB
 );
 

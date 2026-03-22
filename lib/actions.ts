@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { addCampeonato, addTime, deleteCampeonato, registrarResultado } from './store'
 import { validateZonas } from './zonas'
-import type { Zonas } from './types'
+import type { CampeonatoFormato, Zonas } from './types'
 
 export async function criarTimeAction(formData: FormData): Promise<void> {
   const nome = formData.get('nome')?.toString().trim()
@@ -19,11 +19,16 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   const nome = (formData.get('nome') as string).trim()
   const temporada = (formData.get('temporada') as string).trim()
   const timeIds = formData.getAll('timeIds') as string[]
+  const formato = (formData.get('formato') as CampeonatoFormato) || 'liga'
 
   if (!nome) throw new Error('Nome é obrigatório')
   if (!temporada) throw new Error('Temporada é obrigatória')
   if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
   if (timeIds.length > 24) throw new Error('Um campeonato pode ter no máximo 24 times')
+
+  const formatosValidos: CampeonatoFormato[] = ['liga', 'copa_grupos', 'copa_mata_mata']
+  if (!formatosValidos.includes(formato)) throw new Error('Formato inválido')
+  if (formato !== 'liga') throw new Error('Formato ainda não suportado')
 
   const campeao = formData.get('zonaCampeao') === 'on'
   const elite = Number(formData.get('zonaElite')) || undefined
@@ -40,7 +45,8 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
     if (error) throw new Error(error)
   }
 
-  const campeonato = await addCampeonato(nome, temporada, timeIds, true, zonas)
+  const gerarPartidas = formato === 'liga'
+  const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas, formato)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
 }

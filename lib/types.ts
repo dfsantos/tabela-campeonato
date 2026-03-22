@@ -1,4 +1,5 @@
 export type CampeonatoStatus = 'planejado' | 'em_andamento' | 'finalizado'
+export type CampeonatoFormato = 'liga' | 'copa_grupos' | 'copa_mata_mata'
 export type PartidaStatus = 'agendada' | 'finalizada'
 
 export interface Time {
@@ -51,5 +52,6 @@ export interface Campeonato {
   nome: string
   temporada: string
   status: CampeonatoStatus
+  formato: CampeonatoFormato
   zonas?: Zonas
 }

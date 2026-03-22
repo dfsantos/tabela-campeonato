@@ -1,63 +1,201 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useMemo } from 'react'
-import type { Time } from '@/lib/types'
+import { useReducer, useEffect, useMemo, useCallback } from 'react'
+import type { CampeonatoFormato, Time } from '@/lib/types'
 import { criarCampeonatoAction } from '@/lib/actions'
+import WizardStepper from './wizard/wizard-stepper'
+import StepFormato from './wizard/step-formato'
+import StepParticipantes from './wizard/step-participantes'
+import StepZonas from './wizard/step-zonas'
+import StepResumo from './wizard/step-resumo'
+
+type WizardState = {
+  currentStep: number
+  formato: CampeonatoFormato | null
+  nome: string
+  temporada: string
+  selectedTimeIds: Set<string>
+  filtroNome: string
+  filtroAtivo: string
+  zonaCampeao: boolean
+  zonaElite: string
+  zonaSegundo: string
+  zonaRebaixamento: string
+}
+
+type WizardAction =
+  | { type: 'SET_FORMATO'; formato: CampeonatoFormato }
+  | { type: 'SET_FIELD'; field: 'nome' | 'temporada'; value: string }
+  | { type: 'TOGGLE_TIME'; id: string }
+  | { type: 'SET_FILTRO'; value: string }
+  | { type: 'SET_FILTRO_ATIVO'; value: string }
+  | { type: 'SET_ZONA_CAMPEAO'; value: boolean }
+  | { type: 'SET_ZONA_ELITE'; value: string }
+  | { type: 'SET_ZONA_SEGUNDO'; value: string }
+  | { type: 'SET_ZONA_REBAIXAMENTO'; value: string }
+  | { type: 'NEXT_STEP' }
+  | { type: 'PREV_STEP' }
+  | { type: 'GO_TO_STEP'; step: number }
+
+const initialState: WizardState = {
+  currentStep: 0,
+  formato: null,
+  nome: '',
+  temporada: '',
+  selectedTimeIds: new Set(),
+  filtroNome: '',
+  filtroAtivo: '',
+  zonaCampeao: false,
+  zonaElite: '',
+  zonaSegundo: '',
+  zonaRebaixamento: '',
+}
+
+function getTotalSteps(formato: CampeonatoFormato | null): number {
+  return formato === 'liga' ? 4 : 3
+}
+
+function reducer(state: WizardState, action: WizardAction): WizardState {
+  switch (action.type) {
+    case 'SET_FORMATO': {
+      const newTotal = getTotalSteps(action.formato)
+      return {
+        ...state,
+        formato: action.formato,
+        currentStep: Math.min(state.currentStep, newTotal - 1),
+      }
+    }
+    case 'SET_FIELD':
+      return { ...state, [action.field]: action.value }
+    case 'TOGGLE_TIME': {
+      const next = new Set(state.selectedTimeIds)
+      if (next.has(action.id)) {
+        next.delete(action.id)
+      } else {
+        next.add(action.id)
+      }
+      return { ...state, selectedTimeIds: next }
+    }
+    case 'SET_FILTRO':
+      return { ...state, filtroNome: action.value }
+    case 'SET_FILTRO_ATIVO':
+      return { ...state, filtroAtivo: action.value }
+    case 'SET_ZONA_CAMPEAO':
+      return { ...state, zonaCampeao: action.value }
+    case 'SET_ZONA_ELITE':
+      return { ...state, zonaElite: action.value }
+    case 'SET_ZONA_SEGUNDO':
+      return { ...state, zonaSegundo: action.value }
+    case 'SET_ZONA_REBAIXAMENTO':
+      return { ...state, zonaRebaixamento: action.value }
+    case 'NEXT_STEP': {
+      const max = getTotalSteps(state.formato) - 1
+      return { ...state, currentStep: Math.min(state.currentStep + 1, max) }
+    }
+    case 'PREV_STEP':
+      return { ...state, currentStep: Math.max(state.currentStep - 1, 0) }
+    case 'GO_TO_STEP':
+      return { ...state, currentStep: Math.max(0, Math.min(action.step, getTotalSteps(state.formato) - 1)) }
+    default:
+      return state
+  }
+}
+
+// Step identifiers for dynamic step mapping
+type StepId = 'formato' | 'participantes' | 'zonas' | 'resumo'
+
+function getStepIds(formato: CampeonatoFormato | null): StepId[] {
+  if (formato === 'liga') return ['formato', 'participantes', 'zonas', 'resumo']
+  return ['formato', 'participantes', 'resumo']
+}
+
+function getStepLabels(stepIds: StepId[]): Array<{ label: string }> {
+  const labels: Record<StepId, string> = {
+    formato: 'Formato',
+    participantes: 'Participantes',
+    zonas: 'Zonas',
+    resumo: 'Resumo',
+  }
+  return stepIds.map((id) => ({ label: labels[id] }))
+}
 
 export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
-  const [nome, setNome] = useState('')
-  const [temporada, setTemporada] = useState('')
-  const [selectedTimeIds, setSelectedTimeIds] = useState<Set<string>>(new Set())
-  const [filtroNome, setFiltroNome] = useState('')
-  const [filtroAtivo, setFiltroAtivo] = useState('')
-  const [zonasAberto, setZonasAberto] = useState(false)
-  const [zonaCampeao, setZonaCampeao] = useState(false)
-  const [zonaElite, setZonaElite] = useState('')
-  const [zonaSegundo, setZonaSegundo] = useState('')
-  const [zonaRebaixamento, setZonaRebaixamento] = useState('')
+  const [state, dispatch] = useReducer(reducer, initialState)
 
+  // Debounced filter
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFiltroAtivo(filtroNome)
+      dispatch({ type: 'SET_FILTRO_ATIVO', value: state.filtroNome })
     }, 300)
     return () => clearTimeout(timer)
-  }, [filtroNome])
+  }, [state.filtroNome])
 
-  function toggleTime(id: string) {
-    setSelectedTimeIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
-  const selectedCount = selectedTimeIds.size
+  const selectedCount = state.selectedTimeIds.size
 
   const zonaError = useMemo(() => {
-    const e = Number(zonaElite) || 0
-    const s = Number(zonaSegundo) || 0
-    const r = Number(zonaRebaixamento) || 0
+    const e = Number(state.zonaElite) || 0
+    const s = Number(state.zonaSegundo) || 0
+    const r = Number(state.zonaRebaixamento) || 0
     if (s && e && s <= e) return `2º Pelotão (pos. ${s}) deve ser maior que Elite (pos. ${e})`
     const lastZonedPos = s || e
     if (r && lastZonedPos && lastZonedPos + r > selectedCount) return `Zonas se sobrepõem: pos. ${lastZonedPos} + ${r} rebaixados > ${selectedCount} times`
     if (e > selectedCount) return `Elite (pos. ${e}) excede o número de times (${selectedCount})`
     if (s > selectedCount) return `2º Pelotão (pos. ${s}) excede o número de times (${selectedCount})`
     return null
-  }, [zonaElite, zonaSegundo, zonaRebaixamento, selectedCount])
+  }, [state.zonaElite, state.zonaSegundo, state.zonaRebaixamento, selectedCount])
 
-  const canSubmit = nome.trim().length > 0 && temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && !zonaError
-
-  const timesFiltrados = filtroAtivo.trim().length >= 3
-    ? times.filter(t => t.nome.toLowerCase().includes(filtroAtivo.trim().toLowerCase()))
+  const timesFiltrados = state.filtroAtivo.trim().length >= 3
+    ? times.filter(t => t.nome.toLowerCase().includes(state.filtroAtivo.trim().toLowerCase()))
     : times
 
+  const stepIds = getStepIds(state.formato)
+  const currentStepId = stepIds[state.currentStep]
+
+  // Validation per step
+  const canAdvanceFromStep = useCallback((stepId: StepId): boolean => {
+    switch (stepId) {
+      case 'formato':
+        return state.formato !== null
+      case 'participantes':
+        return state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24
+      case 'zonas':
+        return !zonaError
+      case 'resumo':
+        return state.formato === 'liga'
+      default:
+        return false
+    }
+  }, [state.formato, state.nome, state.temporada, selectedCount, zonaError])
+
+  const canAdvance = canAdvanceFromStep(currentStepId)
+  const isLastStep = currentStepId === 'resumo'
+  const canSubmit = isLastStep && state.formato === 'liga' && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && !zonaError
+
+  const handleNext = () => {
+    if (canAdvance && !isLastStep) {
+      dispatch({ type: 'NEXT_STEP' })
+    }
+  }
+
+  const handlePrev = () => {
+    dispatch({ type: 'PREV_STEP' })
+  }
+
+  const handleGoToStep = (step: number) => {
+    if (step < state.currentStep) {
+      dispatch({ type: 'GO_TO_STEP', step })
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLastStep) {
+      e.preventDefault()
+    }
+  }
+
   return (
-    <div className="max-w-lg">
+    <div className="mx-auto max-w-2xl">
       {/* Breadcrumb */}
       <nav className="mb-6 font-label text-xs text-on-surface-variant">
         <Link href="/" className="transition-colors hover:text-primary">Campeonatos</Link>
@@ -65,233 +203,127 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
         <span className="text-on-surface">Novo campeonato</span>
       </nav>
 
-      <div className="rounded-2xl bg-surface-container-lowest p-6 shadow-[0_4px_32px_rgba(20,27,43,0.06)]">
-          <h1 className="mb-6 font-headline text-lg font-bold text-on-surface">
-            Novo campeonato
-          </h1>
+      <div className="rounded-2xl bg-surface-container-lowest p-8 shadow-[0_4px_32px_rgba(20,27,43,0.06)]">
+        <h1 className="mb-6 font-headline text-lg font-bold text-on-surface">
+          Novo campeonato
+        </h1>
 
-          <form action={criarCampeonatoAction} className="space-y-4">
-            <div>
-              <label
-                htmlFor="nome"
-                className="mb-1.5 block font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
-              >
-                Nome
-              </label>
-              <input
-                id="nome"
-                name="nome"
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex: Campeonato Municipal"
-                className="w-full rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+        <WizardStepper
+          steps={getStepLabels(stepIds)}
+          currentStep={state.currentStep}
+          onGoToStep={handleGoToStep}
+        />
+
+        <form action={criarCampeonatoAction} onKeyDown={handleKeyDown}>
+          {/* Hidden inputs carry all data for submission */}
+          <input type="hidden" name="formato" value={state.formato ?? ''} />
+          <input type="hidden" name="nome" value={state.nome} />
+          <input type="hidden" name="temporada" value={state.temporada} />
+          {Array.from(state.selectedTimeIds).map((id) => (
+            <input key={id} type="hidden" name="timeIds" value={id} />
+          ))}
+          {state.zonaCampeao && <input type="hidden" name="zonaCampeao" value="on" />}
+          {state.zonaElite && <input type="hidden" name="zonaElite" value={state.zonaElite} />}
+          {state.zonaSegundo && <input type="hidden" name="zonaSegundoPelotao" value={state.zonaSegundo} />}
+          {state.zonaRebaixamento && <input type="hidden" name="zonaRebaixamento" value={state.zonaRebaixamento} />}
+
+          {/* Step content */}
+          <div className="min-h-[320px]">
+            {currentStepId === 'formato' && (
+              <StepFormato
+                formato={state.formato}
+                onSelect={(f) => dispatch({ type: 'SET_FORMATO', formato: f })}
               />
-            </div>
-
-            <div>
-              <label
-                htmlFor="temporada"
-                className="mb-1.5 block font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
-              >
-                Temporada
-              </label>
-              <input
-                id="temporada"
-                name="temporada"
-                type="text"
-                value={temporada}
-                onChange={(e) => setTemporada(e.target.value)}
-                placeholder="Ex: 2025"
-                className="w-full rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                  Times participantes
-                </span>
-                <span className="font-label text-[10px] text-on-surface-variant">
-                  {selectedTimeIds.size} {selectedTimeIds.size === 1 ? 'time selecionado' : 'times selecionados'}
-                </span>
-              </div>
-              <input
-                type="text"
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                placeholder="Buscar time pelo nome…"
-                className="mb-2 w-full rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
-              />
-              <div className="overflow-hidden rounded-lg bg-surface-container-low">
-                {timesFiltrados.length === 0 ? (
-                  <p className="px-3 py-4 text-center text-sm text-on-surface-variant">
-                    Nenhum time encontrado
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-0.5 p-1">
-                    {timesFiltrados.map((time) => (
-                      <label
-                        key={time.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-container"
-                      >
-                        <input
-                          type="checkbox"
-                          name="timeIds"
-                          value={time.id}
-                          checked={selectedTimeIds.has(time.id)}
-                          onChange={() => toggleTime(time.id)}
-                          disabled={!selectedTimeIds.has(time.id) && selectedCount >= 24}
-                          className="h-4 w-4 rounded accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                        <div>
-                          <span className="text-sm text-on-surface">{time.nome}</span>
-                          {time.cidade && (
-                            <span className="ml-1.5 font-label text-[10px] text-on-surface-variant">{time.cidade}</span>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {selectedCount === 1 && (
-                <p className="mt-1.5 font-label text-[10px] text-on-surface-variant">
-                  Selecione ao menos 1 time adicional
-                </p>
-              )}
-              {selectedCount > 24 && (
-                <p className="mt-1.5 font-label text-[10px] text-error">
-                  Máximo de 24 times atingido
-                </p>
-              )}
-            </div>
-
-            {selectedCount >= 2 && (
-              <p className="font-label text-[10px] text-on-surface-variant">
-                {selectedCount * (selectedCount - 1)} partidas em{' '}
-                {selectedCount % 2 === 0
-                  ? 2 * (selectedCount - 1)
-                  : 2 * selectedCount}{' '}
-                rodadas serão geradas automaticamente.
-              </p>
             )}
 
-            <div>
-              <button
-                type="button"
-                onClick={() => setZonasAberto((v) => !v)}
-                className="flex items-center gap-2 text-sm text-on-surface-variant transition-colors hover:text-primary"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  className={`transition-transform ${zonasAberto ? 'rotate-90' : ''}`}
-                >
-                  <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Zonas de classificação
-              </button>
+            {currentStepId === 'participantes' && (
+              <StepParticipantes
+                nome={state.nome}
+                temporada={state.temporada}
+                selectedTimeIds={state.selectedTimeIds}
+                filtroNome={state.filtroNome}
+                timesFiltrados={timesFiltrados}
+                selectedCount={selectedCount}
+                formato={state.formato}
+                onSetNome={(v) => dispatch({ type: 'SET_FIELD', field: 'nome', value: v })}
+                onSetTemporada={(v) => dispatch({ type: 'SET_FIELD', field: 'temporada', value: v })}
+                onToggleTime={(id) => dispatch({ type: 'TOGGLE_TIME', id })}
+                onSetFiltro={(v) => dispatch({ type: 'SET_FILTRO', value: v })}
+              />
+            )}
 
-              {zonasAberto && (
-                <div className="mt-3 space-y-3 rounded-lg bg-surface-container-low p-3">
-                  <label className="flex cursor-pointer items-center gap-3">
-                    <input
-                      type="checkbox"
-                      name="zonaCampeao"
-                      checked={zonaCampeao}
-                      onChange={(e) => setZonaCampeao(e.target.checked)}
-                      className="h-4 w-4 rounded accent-primary"
-                    />
-                    <span className="flex items-center gap-2 text-sm text-on-surface">
-                      <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                      Destaque para campeão (posição 1)
-                    </span>
-                  </label>
+            {currentStepId === 'zonas' && (
+              <StepZonas
+                zonaCampeao={state.zonaCampeao}
+                zonaElite={state.zonaElite}
+                zonaSegundo={state.zonaSegundo}
+                zonaRebaixamento={state.zonaRebaixamento}
+                zonaError={zonaError}
+                onSetZonaCampeao={(v) => dispatch({ type: 'SET_ZONA_CAMPEAO', value: v })}
+                onSetZonaElite={(v) => dispatch({ type: 'SET_ZONA_ELITE', value: v })}
+                onSetZonaSegundo={(v) => dispatch({ type: 'SET_ZONA_SEGUNDO', value: v })}
+                onSetZonaRebaixamento={(v) => dispatch({ type: 'SET_ZONA_REBAIXAMENTO', value: v })}
+              />
+            )}
 
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-primary" />
-                    <label className="flex flex-1 items-center gap-2 text-sm text-on-surface">
-                      <span className="w-28 flex-shrink-0">Elite (até pos.):</span>
-                      <input
-                        type="number"
-                        name="zonaElite"
-                        min="1"
-                        value={zonaElite}
-                        onChange={(e) => setZonaElite(e.target.value)}
-                        placeholder="—"
-                        className="w-20 rounded-md border-none bg-surface-container-lowest px-2 py-1 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      {zonaElite && <span className="font-label text-[10px] text-on-surface-variant">pos. 1–{zonaElite}</span>}
-                    </label>
-                  </div>
+            {currentStepId === 'resumo' && (
+              <StepResumo
+                formato={state.formato}
+                nome={state.nome}
+                temporada={state.temporada}
+                selectedTimeIds={state.selectedTimeIds}
+                times={times}
+                zonaCampeao={state.zonaCampeao}
+                zonaElite={state.zonaElite}
+                zonaSegundo={state.zonaSegundo}
+                zonaRebaixamento={state.zonaRebaixamento}
+                onGoToStep={handleGoToStep}
+              />
+            )}
+          </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-sky-500" />
-                    <label className="flex flex-1 items-center gap-2 text-sm text-on-surface">
-                      <span className="w-28 flex-shrink-0">2º Pelotão (até pos.):</span>
-                      <input
-                        type="number"
-                        name="zonaSegundoPelotao"
-                        min="1"
-                        value={zonaSegundo}
-                        onChange={(e) => setZonaSegundo(e.target.value)}
-                        placeholder="—"
-                        className="w-20 rounded-md border-none bg-surface-container-lowest px-2 py-1 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      {zonaSegundo && zonaElite && <span className="font-label text-[10px] text-on-surface-variant">pos. {Number(zonaElite) + 1}–{zonaSegundo}</span>}
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-error" />
-                    <label className="flex flex-1 items-center gap-2 text-sm text-on-surface">
-                      <span className="w-28 flex-shrink-0">Rebaixamento:</span>
-                      <input
-                        type="number"
-                        name="zonaRebaixamento"
-                        min="1"
-                        value={zonaRebaixamento}
-                        onChange={(e) => setZonaRebaixamento(e.target.value)}
-                        placeholder="—"
-                        className="w-20 rounded-md border-none bg-surface-container-lowest px-2 py-1 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <span className="font-label text-[10px] text-on-surface-variant">últimos times</span>
-                    </label>
-                  </div>
-
-                  {zonaError && (
-                    <p className="font-label text-[10px] text-error">{zonaError}</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {Array.from(selectedTimeIds)
-              .filter(id => !timesFiltrados.some(t => t.id === id))
-              .map(id => (
-                <input key={id} type="hidden" name="timeIds" value={id} />
-              ))}
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="flex-1 rounded-lg bg-gradient-to-r from-primary to-primary-container px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                Criar campeonato
-              </button>
+          {/* Navigation buttons */}
+          <div className="mt-6 flex items-center gap-3">
+            {state.currentStep === 0 ? (
               <Link
                 href="/"
                 className="rounded-lg bg-secondary-container px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-secondary transition-colors hover:bg-surface-container-high"
               >
                 Cancelar
               </Link>
-            </div>
-          </form>
-        </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="rounded-lg bg-secondary-container px-4 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-secondary transition-colors hover:bg-surface-container-high"
+              >
+                Voltar
+              </button>
+            )}
+
+            <div className="flex-1" />
+
+            {isLastStep ? (
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="rounded-lg bg-gradient-to-r from-primary to-primary-container px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Criar campeonato
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canAdvance}
+                className="rounded-lg bg-gradient-to-r from-primary to-primary-container px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Próximo
+              </button>
+            )}
+          </div>
+        </form>
       </div>
+    </div>
   )
 }
