@@ -29,3 +29,18 @@ CREATE TABLE IF NOT EXISTS partidas (
   gols_visitante INTEGER,
   status TEXT NOT NULL DEFAULT 'agendada'
 );
+
+CREATE TABLE IF NOT EXISTS paises (
+  id SERIAL PRIMARY KEY,
+  nome TEXT NOT NULL,
+  codigo TEXT,
+  bandeira TEXT
+);
+
+CREATE TABLE IF NOT EXISTS ligas (
+  id SERIAL PRIMARY KEY,
+  nome TEXT NOT NULL,
+  tipo TEXT NOT NULL,
+  logo TEXT,
+  pais_id INTEGER REFERENCES paises(id)
+);

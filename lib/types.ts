@@ -39,6 +39,13 @@ export interface Zonas {
   rebaixamento?: number
 }
 
+export interface Pais {
+  id: string
+  nome: string
+  codigo: string | null
+  bandeira: string | null
+}
+
 export interface Campeonato {
   id: string
   nome: string
