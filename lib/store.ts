@@ -1,5 +1,5 @@
 import { sql } from './db'
-import type { Campeonato, ClassificacaoItem, Partida, Time, Zonas } from './types'
+import type { Campeonato, ClassificacaoItem, Pais, Partida, Time, Zonas } from './types'
 
 function parseJsonb<T>(value: unknown): T | undefined {
   if (value == null) return undefined
@@ -32,6 +32,28 @@ export async function getCampeonato(id: string): Promise<Campeonato | undefined>
     temporada: r.temporada as string,
     status: r.status as Campeonato['status'],
     ...(zonas ? { zonas } : {}),
+  }
+}
+
+export async function getPaises(): Promise<Pais[]> {
+  const rows = await sql`SELECT id, nome, codigo, bandeira FROM paises ORDER BY nome`
+  return rows.map((r) => ({
+    id: String(r.id),
+    nome: r.nome as string,
+    codigo: (r.codigo as string) ?? null,
+    bandeira: (r.bandeira as string) ?? null,
+  }))
+}
+
+export async function getPais(id: string): Promise<Pais | undefined> {
+  const rows = await sql`SELECT id, nome, codigo, bandeira FROM paises WHERE id = ${Number(id)}`
+  if (rows.length === 0) return undefined
+  const r = rows[0]
+  return {
+    id: String(r.id),
+    nome: r.nome as string,
+    codigo: (r.codigo as string) ?? null,
+    bandeira: (r.bandeira as string) ?? null,
   }
 }
 
