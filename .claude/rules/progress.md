@@ -104,6 +104,23 @@ MVP funcional com persistência em Vercel Postgres. Registro de partidas, regist
 - `app/sidebar.tsx` — menu condicional: "Chaveamento" para copa, "Classificação" para liga
 - `app/api/campeonatos/[id]/route.ts` — retorna `formato` na resposta
 
+### Formato Copa Grupos + Mata-Mata
+- `lib/db/schema.sql` — ADD COLUMN `grupo INTEGER` em `participantes` e `partidas`
+- `lib/types.ts` — interfaces `GruposConfig`, `GrupoInfo`; campo `grupo?` em `Partida`; `gruposConfig?` em `CopaConfig`
+- `lib/grupos.ts` — **novo**: helpers puros (`nomeGrupo`, `distribuirTimesEmGrupos`, `divisoresValidosParaGrupo`, `calcularInfoBracket`, `selecionarMelhoresRestantes`, `totalPartidasGrupos`, `totalRodadasGrupos`, `labelPosicaoComplemento`)
+- `lib/store.ts` — `mapPartidaRow` inclui grupo; `gerarPartidasRoundRobin` com parâmetro `turnoRetorno`; `addCampeonato` suporta `copa_grupos` com distribuição aleatória de grupos; novas funções: `getTimesPorGrupo`, `gerarPartidasGrupos`, `getGruposInfo`, `verificarFaseGruposConcluida`, `gerarMataMataAposGrupos`, `seedBracket`; `calcularClassificacao` com filtro por grupo; `getChaveamento` e `gerarProximaRodadaMataMata` com rodadaOffset para copa_grupos
+- `lib/actions.ts` — `criarCampeonatoAction` aceita `copa_grupos` com parsing de GruposConfig; `registrarResultadoAction/InlineAction` detectam grupo vs eliminatória e disparam geração automática do bracket
+- `app/campeonatos/novo/wizard/step-formato.tsx` — `copa_grupos` habilitado (removido "Em breve")
+- `app/campeonatos/novo/wizard/step-grupos.tsx` — **novo**: step de configuração de grupos (times/grupo, classificados, turno/returno, info bracket, alerta complemento)
+- `app/campeonatos/novo/novo-campeonato-form.tsx` — estados e actions para grupos; `canAdvanceFromStep` com validação; hidden inputs para grupo config
+- `app/campeonatos/novo/wizard/step-participantes.tsx` — info contextual para copa_grupos
+- `app/campeonatos/novo/wizard/step-resumo.tsx` — resumo com estrutura de grupos e bracket
+- `app/campeonatos/[id]/grupos/page.tsx` — **novo**: mini-tabelas de classificação por grupo com destaque nos classificados
+- `app/campeonatos/[id]/page.tsx` — redirect `copa_grupos` → `/grupos`
+- `app/campeonatos/[id]/chaveamento/page.tsx` — suporte a `copa_grupos`; mensagem "aguardando fase de grupos"
+- `app/campeonatos/[id]/partidas/partidas-content.tsx` — labels contextuais (grupo + fase eliminatória), badge de grupo por partida
+- `app/sidebar.tsx` — nav condicional: Grupos + Chaveamento + Partidas para `copa_grupos`
+
 ## Em andamento
 
 ### Pendente: migration do banco

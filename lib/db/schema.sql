@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS campeonatos (
 CREATE TABLE IF NOT EXISTS participantes (
   campeonato_id INTEGER REFERENCES campeonatos(id) ON DELETE CASCADE,
   time_id INTEGER REFERENCES times(id) ON DELETE CASCADE,
+  grupo INTEGER,
   PRIMARY KEY (campeonato_id, time_id)
 );
 
@@ -32,7 +33,8 @@ CREATE TABLE IF NOT EXISTS partidas (
   status TEXT NOT NULL DEFAULT 'agendada',
   posicao_chave INTEGER,
   penaltis_mandante INTEGER,
-  penaltis_visitante INTEGER
+  penaltis_visitante INTEGER,
+  grupo INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS paises (

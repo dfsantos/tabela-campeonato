@@ -1,5 +1,6 @@
 import type { CampeonatoFormato, Time } from '@/lib/types'
 import { proximaPotenciaDe2, totalRodadasFromSlots, gerarLabelsFases } from '@/lib/mata-mata'
+import { calcularInfoBracket, totalPartidasGrupos, totalRodadasGrupos } from '@/lib/grupos'
 
 interface StepResumoProps {
   formato: CampeonatoFormato | null
@@ -11,6 +12,9 @@ interface StepResumoProps {
   zonaElite: string
   zonaSegundo: string
   zonaRebaixamento: string
+  timesPorGrupo: number
+  classificadosPorGrupo: number
+  turnoRetorno: boolean
   onGoToStep: (step: number) => void
 }
 
@@ -30,6 +34,9 @@ export default function StepResumo({
   zonaElite,
   zonaSegundo,
   zonaRebaixamento,
+  timesPorGrupo,
+  classificadosPorGrupo,
+  turnoRetorno,
   onGoToStep,
 }: StepResumoProps) {
   const selectedCount = selectedTimeIds.size
@@ -198,17 +205,49 @@ export default function StepResumo({
           )
         })()}
 
-        {/* Aviso Copa Grupos (ainda não disponível) */}
-        {formato === 'copa_grupos' && (
-          <div className="rounded-lg bg-surface-container p-4 text-center">
-            <p className="text-sm font-medium text-on-surface-variant">
-              O formato <span className="font-bold">{formatoLabels[formato]}</span> ainda não está disponível.
-            </p>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              Volte e selecione outro formato para criar o campeonato.
-            </p>
-          </div>
-        )}
+        {/* Info de partidas — Copa Grupos */}
+        {formato === 'copa_grupos' && timesPorGrupo > 0 && classificadosPorGrupo > 0 && (() => {
+          const numGrupos = selectedCount / timesPorGrupo
+          const bracketInfo = calcularInfoBracket(numGrupos, classificadosPorGrupo)
+          const partidasGrupo = totalPartidasGrupos(numGrupos, timesPorGrupo, turnoRetorno)
+          const rodadasGrupo = totalRodadasGrupos(timesPorGrupo, turnoRetorno)
+          const fasesEliminatorias = gerarLabelsFases(totalRodadasFromSlots(bracketInfo.bracketSlots))
+
+          return (
+            <div className="rounded-lg bg-surface-container-low p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  Estrutura
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onGoToStep(2)}
+                  className="font-label text-[10px] font-bold uppercase tracking-widest text-primary transition-colors hover:text-primary-container"
+                >
+                  Editar
+                </button>
+              </div>
+              <div className="space-y-1.5 text-xs text-on-surface">
+                <p>
+                  <span className="text-on-surface-variant">Fase de grupos:</span>{' '}
+                  {numGrupos} grupo{numGrupos > 1 ? 's' : ''} de {timesPorGrupo} times
+                  — {turnoRetorno ? 'turno e returno' : 'turno único'}
+                </p>
+                <p className="text-on-surface-variant">
+                  {partidasGrupo} partida{partidasGrupo !== 1 ? 's' : ''} em {rodadasGrupo} rodada{rodadasGrupo !== 1 ? 's' : ''}
+                </p>
+                <p>
+                  <span className="text-on-surface-variant">Mata-mata:</span>{' '}
+                  {bracketInfo.totalClassificadosDiretos} classificado{bracketInfo.totalClassificadosDiretos !== 1 ? 's' : ''} direto{bracketInfo.totalClassificadosDiretos !== 1 ? 's' : ''}
+                  {bracketInfo.melhoresRestantes > 0 && ` + ${bracketInfo.melhoresRestantes} melhor${bracketInfo.melhoresRestantes > 1 ? 'es' : ''}`}
+                </p>
+                <p className="text-on-surface-variant">
+                  {fasesEliminatorias.join(' → ')}
+                </p>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

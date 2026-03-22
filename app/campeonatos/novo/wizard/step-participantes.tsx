@@ -140,6 +140,15 @@ export default function StepParticipantes({
           </p>
         )}
 
+        {formato === 'copa_grupos' && selectedCount >= 2 && (
+          <p className="font-label text-[10px] text-on-surface-variant">
+            {selectedCount < 6
+              ? 'Selecione ao menos 6 times para o formato de grupos'
+              : `${selectedCount} times — distribuição em grupos será configurada no próximo passo`
+            }
+          </p>
+        )}
+
         {formato === 'copa_mata_mata' && selectedCount >= 2 && (() => {
           const slots = proximaPotenciaDe2(selectedCount)
           const rodadas = totalRodadasFromSlots(slots)
