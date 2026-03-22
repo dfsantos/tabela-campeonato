@@ -9,6 +9,7 @@ import WizardStepper from './wizard/wizard-stepper'
 import StepFormato from './wizard/step-formato'
 import StepParticipantes from './wizard/step-participantes'
 import StepZonas from './wizard/step-zonas'
+import StepGrupos from './wizard/step-grupos'
 import StepResumo from './wizard/step-resumo'
 
 type WizardState = {
@@ -23,6 +24,10 @@ type WizardState = {
   zonaElite: string
   zonaSegundo: string
   zonaRebaixamento: string
+  timesPorGrupo: number
+  classificadosPorGrupo: number
+  turnoRetorno: boolean
+  aceitouComplemento: boolean
 }
 
 type WizardAction =
@@ -35,6 +40,10 @@ type WizardAction =
   | { type: 'SET_ZONA_ELITE'; value: string }
   | { type: 'SET_ZONA_SEGUNDO'; value: string }
   | { type: 'SET_ZONA_REBAIXAMENTO'; value: string }
+  | { type: 'SET_TIMES_POR_GRUPO'; value: number }
+  | { type: 'SET_CLASSIFICADOS_POR_GRUPO'; value: number }
+  | { type: 'SET_TURNO_RETORNO'; value: boolean }
+  | { type: 'SET_ACEITOU_COMPLEMENTO'; value: boolean }
   | { type: 'NEXT_STEP' }
   | { type: 'PREV_STEP' }
   | { type: 'GO_TO_STEP'; step: number }
@@ -51,10 +60,16 @@ const initialState: WizardState = {
   zonaElite: '',
   zonaSegundo: '',
   zonaRebaixamento: '',
+  timesPorGrupo: 0,
+  classificadosPorGrupo: 0,
+  turnoRetorno: false,
+  aceitouComplemento: false,
 }
 
 function getTotalSteps(formato: CampeonatoFormato | null): number {
-  return formato === 'liga' ? 4 : 3
+  if (formato === 'liga') return 4
+  if (formato === 'copa_grupos') return 4
+  return 3
 }
 
 function reducer(state: WizardState, action: WizardAction): WizardState {
@@ -90,6 +105,14 @@ function reducer(state: WizardState, action: WizardAction): WizardState {
       return { ...state, zonaSegundo: action.value }
     case 'SET_ZONA_REBAIXAMENTO':
       return { ...state, zonaRebaixamento: action.value }
+    case 'SET_TIMES_POR_GRUPO':
+      return { ...state, timesPorGrupo: action.value, classificadosPorGrupo: 0, aceitouComplemento: false }
+    case 'SET_CLASSIFICADOS_POR_GRUPO':
+      return { ...state, classificadosPorGrupo: action.value, aceitouComplemento: false }
+    case 'SET_TURNO_RETORNO':
+      return { ...state, turnoRetorno: action.value }
+    case 'SET_ACEITOU_COMPLEMENTO':
+      return { ...state, aceitouComplemento: action.value }
     case 'NEXT_STEP': {
       const max = getTotalSteps(state.formato) - 1
       return { ...state, currentStep: Math.min(state.currentStep + 1, max) }
@@ -104,10 +127,11 @@ function reducer(state: WizardState, action: WizardAction): WizardState {
 }
 
 // Step identifiers for dynamic step mapping
-type StepId = 'formato' | 'participantes' | 'zonas' | 'resumo'
+type StepId = 'formato' | 'participantes' | 'zonas' | 'grupos' | 'resumo'
 
 function getStepIds(formato: CampeonatoFormato | null): StepId[] {
   if (formato === 'liga') return ['formato', 'participantes', 'zonas', 'resumo']
+  if (formato === 'copa_grupos') return ['formato', 'participantes', 'grupos', 'resumo']
   return ['formato', 'participantes', 'resumo']
 }
 
@@ -116,9 +140,16 @@ function getStepLabels(stepIds: StepId[]): Array<{ label: string }> {
     formato: 'Formato',
     participantes: 'Participantes',
     zonas: 'Zonas',
+    grupos: 'Grupos',
     resumo: 'Resumo',
   }
   return stepIds.map((id) => ({ label: labels[id] }))
+}
+
+function proximaPotenciaDe2Internal(n: number): number {
+  let v = 1
+  while (v < n) v *= 2
+  return v
 }
 
 function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
@@ -171,21 +202,34 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
     switch (stepId) {
       case 'formato':
         return state.formato !== null
-      case 'participantes':
-        return state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24
+      case 'participantes': {
+        const minTimes = state.formato === 'copa_grupos' ? 6 : 2
+        return state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= minTimes && selectedCount <= 24
+      }
       case 'zonas':
         return !zonaError
+      case 'grupos': {
+        if (state.timesPorGrupo < 3) return false
+        if (selectedCount % state.timesPorGrupo !== 0) return false
+        if (state.classificadosPorGrupo < 1 || state.classificadosPorGrupo >= state.timesPorGrupo) return false
+        // Se precisa de complemento, usuário deve aceitar
+        const numGrupos = selectedCount / state.timesPorGrupo
+        const totalClassificados = numGrupos * state.classificadosPorGrupo
+        const bracketSlots = proximaPotenciaDe2Internal(totalClassificados)
+        const complemento = bracketSlots - totalClassificados
+        if (complemento > 0 && !state.aceitouComplemento) return false
+        return true
+      }
       case 'resumo':
-        return state.formato === 'liga' || state.formato === 'copa_mata_mata'
+        return state.formato === 'liga' || state.formato === 'copa_mata_mata' || state.formato === 'copa_grupos'
       default:
         return false
     }
-  }, [state.formato, state.nome, state.temporada, selectedCount, zonaError])
+  }, [state.formato, state.nome, state.temporada, selectedCount, zonaError, state.timesPorGrupo, state.classificadosPorGrupo, state.aceitouComplemento])
 
   const canAdvance = canAdvanceFromStep(currentStepId)
   const isLastStep = currentStepId === 'resumo'
-  const formatoSuportado = state.formato === 'liga' || state.formato === 'copa_mata_mata'
-  const canSubmit = isLastStep && formatoSuportado && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && (state.formato !== 'liga' || !zonaError)
+  const canSubmit = isLastStep && canAdvanceFromStep('resumo') && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && (state.formato !== 'liga' || !zonaError)
 
   const handleNext = () => {
     if (canAdvance && !isLastStep) {
@@ -241,6 +285,18 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
           {state.zonaElite && <input type="hidden" name="zonaElite" value={state.zonaElite} />}
           {state.zonaSegundo && <input type="hidden" name="zonaSegundoPelotao" value={state.zonaSegundo} />}
           {state.zonaRebaixamento && <input type="hidden" name="zonaRebaixamento" value={state.zonaRebaixamento} />}
+          {state.formato === 'copa_grupos' && (
+            <>
+              <input type="hidden" name="timesPorGrupo" value={state.timesPorGrupo} />
+              <input type="hidden" name="classificadosPorGrupo" value={state.classificadosPorGrupo} />
+              <input type="hidden" name="melhoresRestantes" value={
+                state.timesPorGrupo > 0 && state.classificadosPorGrupo > 0
+                  ? proximaPotenciaDe2Internal((selectedCount / state.timesPorGrupo) * state.classificadosPorGrupo) - (selectedCount / state.timesPorGrupo) * state.classificadosPorGrupo
+                  : 0
+              } />
+              {state.turnoRetorno && <input type="hidden" name="turnoRetorno" value="on" />}
+            </>
+          )}
 
           {/* Step content */}
           <div className="min-h-[320px]">
@@ -281,6 +337,20 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
               />
             )}
 
+            {currentStepId === 'grupos' && (
+              <StepGrupos
+                totalTimes={selectedCount}
+                timesPorGrupo={state.timesPorGrupo}
+                classificadosPorGrupo={state.classificadosPorGrupo}
+                turnoRetorno={state.turnoRetorno}
+                aceitouComplemento={state.aceitouComplemento}
+                onSetTimesPorGrupo={(v) => dispatch({ type: 'SET_TIMES_POR_GRUPO', value: v })}
+                onSetClassificadosPorGrupo={(v) => dispatch({ type: 'SET_CLASSIFICADOS_POR_GRUPO', value: v })}
+                onSetTurnoRetorno={(v) => dispatch({ type: 'SET_TURNO_RETORNO', value: v })}
+                onSetAceitouComplemento={(v) => dispatch({ type: 'SET_ACEITOU_COMPLEMENTO', value: v })}
+              />
+            )}
+
             {currentStepId === 'resumo' && (
               <StepResumo
                 formato={state.formato}
@@ -292,6 +362,9 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                 zonaElite={state.zonaElite}
                 zonaSegundo={state.zonaSegundo}
                 zonaRebaixamento={state.zonaRebaixamento}
+                timesPorGrupo={state.timesPorGrupo}
+                classificadosPorGrupo={state.classificadosPorGrupo}
+                turnoRetorno={state.turnoRetorno}
                 onGoToStep={handleGoToStep}
               />
             )}

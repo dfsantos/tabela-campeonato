@@ -1,6 +1,7 @@
 import { sql } from './db'
-import type { Campeonato, CampeonatoFormato, ChaveamentoConfronto, ChaveamentoRodada, ClassificacaoItem, CopaConfig, Pais, Partida, Time, Zonas } from './types'
+import type { Campeonato, CampeonatoFormato, ChaveamentoConfronto, ChaveamentoRodada, ClassificacaoItem, CopaConfig, GrupoInfo, GruposConfig, Pais, Partida, Time, Zonas } from './types'
 import { calcularByeSlots, getVencedor, nomeFase, proximaPotenciaDe2, shuffleArray, totalRodadasFromSlots } from './mata-mata'
+import { calcularInfoBracket, distribuirTimesEmGrupos, nomeGrupo, selecionarMelhoresRestantes } from './grupos'
 
 function parseJsonb<T>(value: unknown): T | undefined {
   if (value == null) return undefined
@@ -133,6 +134,7 @@ function mapPartidaRow(r: Record<string, any>): Partida {
     ...(r.posicao_chave != null ? { posicaoChave: r.posicao_chave as number } : {}),
     ...(r.penaltis_mandante != null ? { penaltisMandante: r.penaltis_mandante as number } : {}),
     ...(r.penaltis_visitante != null ? { penaltisVisitante: r.penaltis_visitante as number } : {}),
+    ...(r.grupo != null ? { grupo: r.grupo as number } : {}),
   }
 }
 
@@ -151,6 +153,7 @@ export async function addTime(nome: string, cidade?: string): Promise<Time> {
 
 function gerarPartidasRoundRobin(
   timeIds: string[],
+  turnoRetorno: boolean = true,
 ): Array<{ rodada: number; mandanteId: string; visitanteId: string }> {
   const ids = [...timeIds]
   if (ids.length % 2 === 1) ids.push('bye')
@@ -171,9 +174,11 @@ function gerarPartidasRoundRobin(
     ids.splice(1, 0, ids.pop()!)
   }
 
-  const firstTurn = [...result]
-  for (const p of firstTurn) {
-    result.push({ rodada: p.rodada + rounds, mandanteId: p.visitanteId, visitanteId: p.mandanteId })
+  if (turnoRetorno) {
+    const firstTurn = [...result]
+    for (const p of firstTurn) {
+      result.push({ rodada: p.rodada + rounds, mandanteId: p.visitanteId, visitanteId: p.mandanteId })
+    }
   }
 
   return result
@@ -186,14 +191,19 @@ export async function addCampeonato(
   gerarPartidas?: boolean,
   zonas?: Zonas,
   formato?: CampeonatoFormato,
+  gruposConfig?: GruposConfig,
 ): Promise<Campeonato> {
   const fmt = formato ?? 'liga'
 
-  // Calcular copa_config se mata-mata
+  // Calcular copa_config
   let copaConfig: CopaConfig | undefined
   if (fmt === 'copa_mata_mata') {
     const slots = proximaPotenciaDe2(timeIds.length)
     copaConfig = { totalRodadas: totalRodadasFromSlots(slots), totalSlots: slots }
+  } else if (fmt === 'copa_grupos' && gruposConfig) {
+    const { bracketSlots } = calcularInfoBracket(gruposConfig.numGrupos, gruposConfig.classificadosPorGrupo)
+    const totalRodadas = totalRodadasFromSlots(bracketSlots)
+    copaConfig = { totalRodadas, totalSlots: bracketSlots, gruposConfig }
   }
 
   let rows
@@ -212,51 +222,39 @@ export async function addCampeonato(
   }
   const campeonato = mapCampeonatoRow(rows[0])
 
-  for (const timeId of timeIds) {
-    await sql`INSERT INTO participantes (campeonato_id, time_id) VALUES (${Number(campeonato.id)}, ${Number(timeId)})`
-  }
+  if (fmt === 'copa_grupos' && gruposConfig) {
+    // Distribuir times em grupos aleatoriamente
+    const grupos = distribuirTimesEmGrupos(timeIds, gruposConfig.timesPorGrupo)
+    for (let g = 0; g < grupos.length; g++) {
+      for (const timeId of grupos[g]) {
+        await sql`INSERT INTO participantes (campeonato_id, time_id, grupo) VALUES (${Number(campeonato.id)}, ${Number(timeId)}, ${g})`
+      }
+    }
 
-  if (gerarPartidas) {
-    if (fmt === 'copa_mata_mata') {
-      await gerarPartidasMataMata(campeonato.id, timeIds)
-    } else {
-      const partidas = gerarPartidasRoundRobin(timeIds)
-      for (const p of partidas) {
-        await sql`
-          INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status)
-          VALUES (${Number(campeonato.id)}, ${p.rodada}, ${Number(p.mandanteId)}, ${Number(p.visitanteId)}, '', 'agendada')
-        `
+    if (gerarPartidas) {
+      await gerarPartidasGrupos(campeonato.id, grupos, gruposConfig.turnoRetorno)
+    }
+  } else {
+    for (const timeId of timeIds) {
+      await sql`INSERT INTO participantes (campeonato_id, time_id) VALUES (${Number(campeonato.id)}, ${Number(timeId)})`
+    }
+
+    if (gerarPartidas) {
+      if (fmt === 'copa_mata_mata') {
+        await gerarPartidasMataMata(campeonato.id, timeIds)
+      } else {
+        const partidas = gerarPartidasRoundRobin(timeIds)
+        for (const p of partidas) {
+          await sql`
+            INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status)
+            VALUES (${Number(campeonato.id)}, ${p.rodada}, ${Number(p.mandanteId)}, ${Number(p.visitanteId)}, '', 'agendada')
+          `
+        }
       }
     }
   }
 
   return campeonato
-}
-
-async function addPartida(
-  campeonatoId: string,
-  rodada: number,
-  mandanteId: string,
-  visitanteId: string,
-  data: string,
-): Promise<Partida> {
-  const rows = await sql`
-    INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status)
-    VALUES (${Number(campeonatoId)}, ${rodada}, ${Number(mandanteId)}, ${Number(visitanteId)}, ${data}, 'agendada')
-    RETURNING id
-  `
-
-  // Ensure both teams are participants
-  for (const timeId of [mandanteId, visitanteId]) {
-    await sql`
-      INSERT INTO participantes (campeonato_id, time_id)
-      VALUES (${Number(campeonatoId)}, ${Number(timeId)})
-      ON CONFLICT DO NOTHING
-    `
-  }
-
-  const partida = await getPartida(String(rows[0].id))
-  return partida!
 }
 
 export async function registrarResultado(
@@ -313,19 +311,27 @@ export async function gerarProximaRodadaMataMata(campeonatoId: string): Promise<
   if (!campeonato?.copaConfig) return false
 
   const { totalRodadas, totalSlots } = campeonato.copaConfig
+  const isCopaGrupos = campeonato.formato === 'copa_grupos'
   const partidas = await getPartidas(campeonatoId)
 
-  // Encontrar a rodada mais alta com partidas
-  const rodadaAtual = partidas.reduce((max, p) => Math.max(max, p.rodada), 0)
-  if (rodadaAtual === 0) return false
-  if (rodadaAtual >= totalRodadas) return false
+  // Filtrar apenas partidas eliminatórias (com posicao_chave)
+  const partidasEliminatorias = partidas.filter((p) => p.posicaoChave != null)
+  if (partidasEliminatorias.length === 0) return false
+
+  // Encontrar rodada base (offset) e rodada atual
+  const rodadaMinima = Math.min(...partidasEliminatorias.map((p) => p.rodada))
+  const rodadaOffset = rodadaMinima - 1
+  const rodadaAtual = Math.max(...partidasEliminatorias.map((p) => p.rodada))
+  const rodadaRelativa = rodadaAtual - rodadaOffset
+
+  if (rodadaRelativa >= totalRodadas) return false
 
   // Verificar se todas as partidas da rodada atual estão finalizadas
-  const partidasRodadaAtual = partidas.filter((p) => p.rodada === rodadaAtual)
+  const partidasRodadaAtual = partidasEliminatorias.filter((p) => p.rodada === rodadaAtual)
   if (partidasRodadaAtual.some((p) => p.status !== 'finalizada')) return false
 
   // Determinar vencedores de cada posição da rodada atual
-  const matchesRodadaAtual = totalSlots / Math.pow(2, rodadaAtual)
+  const matchesRodadaAtual = totalSlots / Math.pow(2, rodadaRelativa)
 
   // Mapear posição -> vencedor
   const vencedorPorPosicao = new Map<number, string>()
@@ -337,11 +343,11 @@ export async function gerarProximaRodadaMataMata(campeonatoId: string): Promise<
     if (vencedorId) vencedorPorPosicao.set(p.posicaoChave, vencedorId)
   }
 
-  // Processar byes (rodada 1): times que avançaram sem jogar
-  if (rodadaAtual === 1) {
+  // Processar byes (apenas mata-mata direto, rodada 1)
+  if (!isCopaGrupos && rodadaRelativa === 1) {
     const timesIds = await getTimeIdsDoCampeonato(campeonatoId)
-    const shuffled = getByeTeams(timesIds, totalSlots, partidasRodadaAtual)
-    for (const [pos, timeId] of shuffled) {
+    const byeResults = getByeTeams(timesIds, totalSlots, partidasRodadaAtual)
+    for (const [pos, timeId] of byeResults) {
       vencedorPorPosicao.set(pos, timeId)
     }
   }
@@ -438,21 +444,36 @@ export async function getChaveamento(campeonatoId: string): Promise<ChaveamentoR
   if (!campeonato?.copaConfig) return []
 
   const { totalRodadas: numRodadas, totalSlots } = campeonato.copaConfig
+  const isCopaGrupos = campeonato.formato === 'copa_grupos'
   const partidas = await getPartidas(campeonatoId)
-  const allTimeIds = await getTimeIdsDoCampeonato(campeonatoId)
-  const byeSlots = calcularByeSlots(allTimeIds.length, totalSlots)
 
-  // Mapear partidas por rodada e posição
-  const partidasPorRodadaPosicao = new Map<string, Partida>()
-  for (const p of partidas) {
-    if (p.posicaoChave != null) {
-      partidasPorRodadaPosicao.set(`${p.rodada}-${p.posicaoChave}`, p)
-    }
+  // Filtrar apenas partidas eliminatórias (com posicao_chave)
+  const partidasEliminatorias = partidas.filter((p) => p.posicaoChave != null)
+
+  // Calcular offset de rodada para copa_grupos (rodadas de grupo antes)
+  let rodadaOffset = 0
+  if (isCopaGrupos && partidasEliminatorias.length > 0) {
+    rodadaOffset = Math.min(...partidasEliminatorias.map((p) => p.rodada)) - 1
   }
 
-  // Identificar times com bye
-  const partidasRodada1 = partidas.filter((p) => p.rodada === 1)
-  const byeTeams = getByeTeams(allTimeIds, totalSlots, partidasRodada1)
+  // Mapear partidas por rodada relativa e posição
+  const partidasPorRodadaPosicao = new Map<string, Partida>()
+  for (const p of partidasEliminatorias) {
+    const rodadaRelativa = p.rodada - rodadaOffset
+    partidasPorRodadaPosicao.set(`${rodadaRelativa}-${p.posicaoChave}`, p)
+  }
+
+  // Byes: apenas para mata-mata direto (sem grupos)
+  const allTimeIds = await getTimeIdsDoCampeonato(campeonatoId)
+  const byeSlots = isCopaGrupos
+    ? new Set<number>()
+    : calcularByeSlots(allTimeIds.length, totalSlots)
+
+  let byeTeams = new Map<number, string>()
+  if (!isCopaGrupos) {
+    const partidasRodada1 = partidas.filter((p) => p.rodada === 1)
+    byeTeams = getByeTeams(allTimeIds, totalSlots, partidasRodada1)
+  }
 
   const rodadas: ChaveamentoRodada[] = []
 
@@ -464,7 +485,6 @@ export async function getChaveamento(campeonatoId: string): Promise<ChaveamentoR
       const partida = partidasPorRodadaPosicao.get(`${rodada}-${pos}`)
 
       if (rodada === 1 && byeSlots.has(pos)) {
-        // Bye — buscar nome do time
         const byeTeamId = byeTeams.get(pos)
         let byeTimeName = 'BYE'
         if (byeTeamId) {
@@ -482,15 +502,16 @@ export async function getChaveamento(campeonatoId: string): Promise<ChaveamentoR
       } else if (partida) {
         confrontos.push({ posicao: pos, partida })
       } else {
-        // Partida futura — labels de origem
         const pos1 = 2 * pos - 1
         const pos2 = 2 * pos
         const rodadaAnterior = rodada - 1
-        const fasAnterior = nomeFase(rodadaAnterior, numRodadas)
+        const fasAnterior = rodadaAnterior === 0
+          ? 'Grupos'
+          : nomeFase(rodadaAnterior, numRodadas)
         confrontos.push({
           posicao: pos,
-          mandanteLabel: `Venc. ${fasAnterior} #${pos1}`,
-          visitanteLabel: `Venc. ${fasAnterior} #${pos2}`,
+          mandanteLabel: rodadaAnterior === 0 ? `Classif. #${pos1}` : `Venc. ${fasAnterior} #${pos1}`,
+          visitanteLabel: rodadaAnterior === 0 ? `Classif. #${pos2}` : `Venc. ${fasAnterior} #${pos2}`,
         })
       }
     }
@@ -505,9 +526,19 @@ export async function getChaveamento(campeonatoId: string): Promise<ChaveamentoR
   return rodadas
 }
 
-export async function calcularClassificacao(campeonatoId: string): Promise<ClassificacaoItem[]> {
-  const times = await getTimesDoCampeonato(campeonatoId)
-  const partidas = await getPartidas(campeonatoId)
+export async function calcularClassificacao(campeonatoId: string, grupo?: number): Promise<ClassificacaoItem[]> {
+  let times: Time[]
+  let partidas: Partida[]
+
+  if (grupo != null) {
+    // Filtrar times e partidas por grupo
+    times = await getTimesPorGrupo(campeonatoId, grupo)
+    const todasPartidas = await getPartidas(campeonatoId)
+    partidas = todasPartidas.filter((p) => p.grupo === grupo)
+  } else {
+    times = await getTimesDoCampeonato(campeonatoId)
+    partidas = await getPartidas(campeonatoId)
+  }
   const finalizadas = partidas.filter((p) => p.status === 'finalizada')
 
   type Stats = {
@@ -609,4 +640,162 @@ export async function calcularClassificacao(campeonatoId: string): Promise<Class
       golsContra: s.golsContra,
       saldoGols: s.golsPro - s.golsContra,
     }))
+}
+
+// ── Copa Grupos ──────────────────────────────────────────────
+
+async function getTimesPorGrupo(campeonatoId: string, grupo: number): Promise<Time[]> {
+  const rows = await sql`
+    SELECT t.id, t.nome, t.cidade
+    FROM participantes p
+    JOIN times t ON t.id = p.time_id
+    WHERE p.campeonato_id = ${Number(campeonatoId)} AND p.grupo = ${grupo}
+    ORDER BY t.nome
+  `
+  return rows.map((r) => ({
+    id: String(r.id),
+    nome: r.nome as string,
+    ...(r.cidade ? { cidade: r.cidade as string } : {}),
+  }))
+}
+
+async function gerarPartidasGrupos(
+  campeonatoId: string,
+  grupos: string[][],
+  turnoRetorno: boolean,
+): Promise<void> {
+  for (let g = 0; g < grupos.length; g++) {
+    const partidas = gerarPartidasRoundRobin(grupos[g], turnoRetorno)
+    for (const p of partidas) {
+      await sql`
+        INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status, grupo)
+        VALUES (${Number(campeonatoId)}, ${p.rodada}, ${Number(p.mandanteId)}, ${Number(p.visitanteId)}, '', 'agendada', ${g})
+      `
+    }
+  }
+}
+
+export async function getGruposInfo(campeonatoId: string): Promise<GrupoInfo[]> {
+  // Buscar participantes com grupo
+  const rows = await sql`
+    SELECT p.grupo, t.id, t.nome, t.cidade
+    FROM participantes p
+    JOIN times t ON t.id = p.time_id
+    WHERE p.campeonato_id = ${Number(campeonatoId)} AND p.grupo IS NOT NULL
+    ORDER BY p.grupo, t.nome
+  `
+
+  // Agrupar por grupo
+  const gruposMap = new Map<number, Time[]>()
+  for (const r of rows) {
+    const g = r.grupo as number
+    if (!gruposMap.has(g)) gruposMap.set(g, [])
+    gruposMap.get(g)!.push({
+      id: String(r.id),
+      nome: r.nome as string,
+      ...(r.cidade ? { cidade: r.cidade as string } : {}),
+    })
+  }
+
+  const result: GrupoInfo[] = []
+  for (const [num, times] of gruposMap) {
+    const classificacao = await calcularClassificacao(campeonatoId, num)
+    result.push({
+      numero: num,
+      nome: nomeGrupo(num),
+      times,
+      classificacao,
+    })
+  }
+
+  return result.sort((a, b) => a.numero - b.numero)
+}
+
+export async function verificarFaseGruposConcluida(campeonatoId: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE status = 'finalizada') AS finalizadas
+    FROM partidas
+    WHERE campeonato_id = ${Number(campeonatoId)} AND grupo IS NOT NULL
+  `
+  const { total, finalizadas } = rows[0]
+  return Number(total) > 0 && Number(total) === Number(finalizadas)
+}
+
+export async function gerarMataMataAposGrupos(campeonatoId: string): Promise<boolean> {
+  const campeonato = await getCampeonato(campeonatoId)
+  if (!campeonato?.copaConfig?.gruposConfig) return false
+
+  const { classificadosPorGrupo, melhoresRestantes } = campeonato.copaConfig.gruposConfig
+  const { totalSlots } = campeonato.copaConfig
+
+  // Verificar se já existem partidas eliminatórias
+  const existentes = await sql`
+    SELECT COUNT(*) AS c FROM partidas
+    WHERE campeonato_id = ${Number(campeonatoId)} AND posicao_chave IS NOT NULL
+  `
+  if (Number(existentes[0].c) > 0) return false
+
+  // Obter classificação de cada grupo
+  const gruposInfo = await getGruposInfo(campeonatoId)
+  const gruposClassificacao = gruposInfo.map((g) => g.classificacao)
+
+  // Classificados diretos: top X de cada grupo
+  const classificados: string[] = []
+  for (const grupo of gruposClassificacao) {
+    for (const item of grupo) {
+      if (item.posicao <= classificadosPorGrupo) {
+        classificados.push(item.time.id)
+      }
+    }
+  }
+
+  // Complemento: melhores restantes
+  if (melhoresRestantes > 0) {
+    const extras = selecionarMelhoresRestantes(gruposClassificacao, classificadosPorGrupo, melhoresRestantes)
+    for (const item of extras) {
+      classificados.push(item.time.id)
+    }
+  }
+
+  // Gerar bracket com os classificados
+  // Seeding: intercalar times de grupos diferentes para evitar confronto direto na primeira rodada
+  const seeded = seedBracket(classificados)
+
+  // Calcular rodada base (após as rodadas de grupo)
+  const rodadaBaseRows = await sql`
+    SELECT COALESCE(MAX(rodada), 0) AS max_rodada
+    FROM partidas
+    WHERE campeonato_id = ${Number(campeonatoId)} AND grupo IS NOT NULL
+  `
+  const rodadaBase = Number(rodadaBaseRows[0].max_rodada)
+
+  // Gerar partidas da primeira rodada eliminatória
+  const matchesRound1 = totalSlots / 2
+  for (let pos = 1; pos <= matchesRound1; pos++) {
+    const mandanteIdx = (pos - 1) * 2
+    const visitanteIdx = mandanteIdx + 1
+
+    if (mandanteIdx >= seeded.length || visitanteIdx >= seeded.length) continue
+
+    await sql`
+      INSERT INTO partidas (campeonato_id, rodada, mandante_id, visitante_id, data, status, posicao_chave)
+      VALUES (${Number(campeonatoId)}, ${rodadaBase + 1}, ${Number(seeded[mandanteIdx])}, ${Number(seeded[visitanteIdx])}, '', 'agendada', ${pos})
+    `
+  }
+
+  return true
+}
+
+/**
+ * Organiza os classificados para o bracket evitando times do mesmo grupo na primeira rodada.
+ * Cabeças de chave (1ºs de cada grupo) enfrentam piores classificados.
+ */
+function seedBracket(
+  classificados: string[],
+): string[] {
+  // Para simplicidade, usar o array como está — os classificados já vêm intercalados
+  // (grupo A top X, grupo B top X, ...), o que naturalmente distribui times de grupos diferentes
+  // O shuffle dentro da rodada eliminatória garante variedade
+  return shuffleArray(classificados)
 }

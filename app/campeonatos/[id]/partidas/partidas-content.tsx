@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { type CampeonatoFormato, type Partida } from '@/lib/types'
 import { registrarResultadoInlineAction } from '@/lib/actions'
 import { nomeFase } from '@/lib/mata-mata'
+import { nomeGrupo } from '@/lib/grupos'
 
 interface Props {
   partidas: Partida[]
@@ -13,8 +14,44 @@ interface Props {
   totalRodadas?: number
 }
 
-export function PartidasContent({ partidas, campeonatoId, formato, totalRodadas: totalRodadasProp }: Props) {
+function getRodadaLabel(
+  rodadaNum: number,
+  partidasDaRodada: Partida[],
+  formato: CampeonatoFormato | undefined,
+  totalRodadas: number | undefined,
+  todasPartidas?: Partida[],
+): string {
+  const isCopaGrupos = formato === 'copa_grupos'
   const isMataMata = formato === 'copa_mata_mata'
+
+  if (isCopaGrupos) {
+    const primeiraPartida = partidasDaRodada[0]
+    if (primeiraPartida?.grupo != null) {
+      return `Fase de grupos — Rodada ${rodadaNum}`
+    }
+    // Fase eliminatória: calcular rodada relativa ao bracket
+    if (totalRodadas && todasPartidas) {
+      // Encontrar a primeira rodada eliminatória (menor rodada sem grupo)
+      const rodadasEliminatorias = todasPartidas
+        .filter((p) => p.posicaoChave != null)
+        .map((p) => p.rodada)
+      const primeiraRodadaEliminatoria = rodadasEliminatorias.length > 0
+        ? Math.min(...rodadasEliminatorias)
+        : rodadaNum
+      const rodadaRelativa = rodadaNum - primeiraRodadaEliminatoria + 1
+      return nomeFase(rodadaRelativa, totalRodadas)
+    }
+    return `Eliminatória`
+  }
+
+  if (isMataMata && totalRodadas) {
+    return nomeFase(rodadaNum, totalRodadas)
+  }
+
+  return `Rodada ${rodadaNum}`
+}
+
+export function PartidasContent({ partidas, campeonatoId, formato, totalRodadas: totalRodadasProp }: Props) {
   const porRodada = partidas.reduce<Record<number, Partida[]>>((acc, p) => {
     ;(acc[p.rodada] ??= []).push(p)
     return acc
@@ -83,9 +120,7 @@ export function PartidasContent({ partidas, campeonatoId, formato, totalRodadas:
         </button>
 
         <span className="font-headline text-sm font-bold text-on-surface">
-          {isMataMata && totalRodadasProp
-            ? nomeFase(rodadaAtual, totalRodadasProp)
-            : `Rodada ${rodadaAtual}`}
+          {getRodadaLabel(rodadaAtual, partidasDaRodada, formato, totalRodadasProp, partidas)}
           <span className="ml-1.5 font-label text-[10px] font-normal uppercase tracking-widest text-on-surface-variant">
             de {rodadas.length}
           </span>
@@ -152,6 +187,12 @@ export function PartidasContent({ partidas, campeonatoId, formato, totalRodadas:
                 )}
               </span>
             </div>
+            {/* Indicador de grupo */}
+            {p.grupo != null && (
+              <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-2 py-0.5 font-label text-[9px] font-medium text-primary">
+                {nomeGrupo(p.grupo).replace('Grupo ', '')}
+              </span>
+            )}
             {/* Indicador de pênaltis */}
             {p.penaltisMandante != null && p.penaltisVisitante != null && (
               <span className="ml-2 shrink-0 rounded-full bg-surface-container-low px-2 py-0.5 font-label text-[9px] text-on-surface-variant">

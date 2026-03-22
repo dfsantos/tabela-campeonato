@@ -57,5 +57,29 @@ a migração para um banco de dados não exija reescrita das regras de negócio.
 - Raciocínio: Ida e volta exigiria vincular pares de partidas, placar agregado e regras de desempate adicionais. Complexidade desproporcional para o MVP.
 - Consequência: Futuro suporte a ida-e-volta pode exigir coluna `confronto_id` para vincular partidas.
 
+---
+
+## 2026-03-22 — Copa Grupos + Mata-Mata
+
+**Divisão exata de times em grupos obrigatória**
+- Decisão: O wizard exige que `totalTimes % timesPorGrupo === 0`. Apenas divisores válidos são oferecidos como opção.
+- Raciocínio: Grupos desiguais complicam regras de classificação (times com mais jogos teriam vantagem/desvantagem). Exigir divisão exata simplifica comparações entre grupos.
+- Consequência: Limita combinações possíveis, mas garante equidade.
+
+**Melhores restantes para complementar bracket**
+- Decisão: Quando `classificadosPorGrupo × numGrupos < bracketSlots`, a aplicação seleciona os N melhores entre os não-classificados de todos os grupos, usando critério padrão (pontos → vitórias → saldo → gols pró).
+- Raciocínio: Permite brackets maiores sem forçar mais classificados diretos por grupo. Padrão em copas reais (ex: melhores terceiros na Euro/Copa do Mundo).
+- Consequência: Requer que o usuário aceite explicitamente o complemento no wizard.
+
+**Rodada offset para copa_grupos**
+- Decisão: Partidas de grupo usam rodadas 1..N e partidas eliminatórias usam rodadas N+1..N+M. Funções de bracket calculam `rodadaOffset` a partir da menor rodada com `posicao_chave IS NOT NULL`.
+- Raciocínio: Evita criar coluna separada para "fase" — a rodada numérica codifica a ordem temporal. O offset permite reusar toda a lógica de mata-mata sem mudanças.
+- Consequência: Labels de rodada precisam considerar se é grupo ou eliminatória (implementado em `getRodadaLabel`).
+
+**Turno/returno configurável na fase de grupos**
+- Decisão: Usuário escolhe se a fase de grupos é turno único ou turno+returno. `gerarPartidasRoundRobin` recebeu parâmetro `turnoRetorno` (default `true` para backward compatibility com liga).
+- Raciocínio: Grupos pequenos (3 times) com turno único têm apenas 3 partidas, aceitável. Grupos maiores podem precisar de mais jogos.
+- Consequência: Total de rodadas e partidas varia conforme escolha.
+
 _Registrar aqui decisões técnicas tomadas durante o desenvolvimento,
 não apenas decisões do produto._

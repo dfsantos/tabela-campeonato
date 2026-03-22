@@ -96,41 +96,59 @@ export function Sidebar() {
         if (!campeonatoId || campeonatoId === 'novo') return null
 
         const isMataMata = campeonatoFormato === 'copa_mata_mata'
+        const isCopaGrupos = campeonatoFormato === 'copa_grupos'
 
-        const campeonatoItems = [
-          isMataMata
-            ? {
-                label: 'Chaveamento',
-                href: `/campeonatos/${campeonatoId}/chaveamento`,
-                icon: (
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 4H7V6H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M3 10H7V12H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M7 5H11V11H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
-                    <path d="M11 8H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                ),
-              }
-            : {
-                label: 'Classificação',
-                href: `/campeonatos/${campeonatoId}/classificacao`,
-                icon: (
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                    <path d="M2 12H5V6H2V12ZM6.5 12H9.5V2H6.5V12ZM11 12H14V8H11V12Z" fill="currentColor" />
-                  </svg>
-                ),
-              },
-          {
-            label: 'Partidas',
-            href: `/campeonatos/${campeonatoId}/partidas`,
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M2 6H14M6 2V14" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            ),
-          },
-        ]
+        const chaveamentoItem = {
+          label: 'Chaveamento',
+          href: `/campeonatos/${campeonatoId}/chaveamento`,
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <path d="M3 4H7V6H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 10H7V12H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M7 5H11V11H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
+              <path d="M11 8H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          ),
+        }
+
+        const classificacaoItem = {
+          label: 'Classificação',
+          href: `/campeonatos/${campeonatoId}/classificacao`,
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <path d="M2 12H5V6H2V12ZM6.5 12H9.5V2H6.5V12ZM11 12H14V8H11V12Z" fill="currentColor" />
+            </svg>
+          ),
+        }
+
+        const gruposItem = {
+          label: 'Grupos',
+          href: `/campeonatos/${campeonatoId}/grupos`,
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="3" width="5" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="9" y="3" width="5" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="5.5" y="9" width="5" height="4" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          ),
+        }
+
+        const partidasItem = {
+          label: 'Partidas',
+          href: `/campeonatos/${campeonatoId}/partidas`,
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M2 6H14M6 2V14" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          ),
+        }
+
+        const campeonatoItems = isCopaGrupos
+          ? [gruposItem, chaveamentoItem, partidasItem]
+          : isMataMata
+            ? [chaveamentoItem, partidasItem]
+            : [classificacaoItem, partidasItem]
 
         return (
           <>

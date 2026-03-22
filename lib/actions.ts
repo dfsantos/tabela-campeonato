@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addCampeonato, addTime, deleteCampeonato, getCampeonato, registrarResultado, registrarResultadoMataMata } from './store'
+import { addCampeonato, addTime, deleteCampeonato, getCampeonato, getPartida, gerarMataMataAposGrupos, registrarResultado, registrarResultadoMataMata, verificarFaseGruposConcluida } from './store'
 import { validateZonas } from './zonas'
-import type { CampeonatoFormato, Zonas } from './types'
+import type { CampeonatoFormato, GruposConfig, Zonas } from './types'
 
 export async function criarTimeAction(formData: FormData): Promise<void> {
   const nome = formData.get('nome')?.toString().trim()
@@ -28,7 +28,6 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
 
   const formatosValidos: CampeonatoFormato[] = ['liga', 'copa_grupos', 'copa_mata_mata']
   if (!formatosValidos.includes(formato)) throw new Error('Formato inválido')
-  if (formato === 'copa_grupos') throw new Error('Formato ainda não suportado')
 
   // Zonas são apenas para liga
   let zonas: Zonas | undefined
@@ -49,8 +48,26 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
     }
   }
 
-  const gerarPartidas = formato === 'liga' || formato === 'copa_mata_mata'
-  const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas, formato)
+  // Configuração de grupos (apenas para copa_grupos)
+  let gruposConfig: GruposConfig | undefined
+  if (formato === 'copa_grupos') {
+    const timesPorGrupo = Number(formData.get('timesPorGrupo'))
+    const classificadosPorGrupo = Number(formData.get('classificadosPorGrupo'))
+    const melhoresRestantes = Number(formData.get('melhoresRestantes')) || 0
+    const turnoRetorno = formData.get('turnoRetorno') === 'on'
+
+    if (!timesPorGrupo || timesPorGrupo < 3) throw new Error('Mínimo de 3 times por grupo')
+    if (timeIds.length % timesPorGrupo !== 0) throw new Error('Total de times deve ser divisível pelo tamanho do grupo')
+    if (!classificadosPorGrupo || classificadosPorGrupo < 1) throw new Error('Mínimo de 1 classificado por grupo')
+    if (classificadosPorGrupo >= timesPorGrupo) throw new Error('Classificados por grupo deve ser menor que times por grupo')
+    if (timeIds.length < 6) throw new Error('Mínimo de 6 times para formato de grupos')
+
+    const numGrupos = timeIds.length / timesPorGrupo
+    gruposConfig = { numGrupos, timesPorGrupo, classificadosPorGrupo, melhoresRestantes, turnoRetorno }
+  }
+
+  const gerarPartidas = formato === 'liga' || formato === 'copa_mata_mata' || formato === 'copa_grupos'
+  const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas, formato, gruposConfig)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
 }
@@ -71,7 +88,11 @@ export async function registrarResultadoAction(formData: FormData): Promise<void
   if (golsMandante < 0 || golsVisitante < 0) throw new Error('Gols inválidos')
 
   const campeonato = await getCampeonato(campeonatoId)
-  if (campeonato?.formato === 'copa_mata_mata') {
+  const partida = await getPartida(partidaId)
+
+  if (campeonato?.formato === 'copa_mata_mata' ||
+      (campeonato?.formato === 'copa_grupos' && partida?.posicaoChave != null)) {
+    // Mata-mata (direto ou fase eliminatória da copa grupos)
     const penM = formData.get('penaltisMandante')
     const penV = formData.get('penaltisVisitante')
     const penaltisMandante = penM != null ? parseInt(penM as string, 10) : undefined
@@ -79,6 +100,14 @@ export async function registrarResultadoAction(formData: FormData): Promise<void
     await registrarResultadoMataMata(partidaId, golsMandante, golsVisitante, penaltisMandante, penaltisVisitante)
   } else {
     await registrarResultado(partidaId, golsMandante, golsVisitante)
+
+    // Copa grupos: verificar transição para mata-mata
+    if (campeonato?.formato === 'copa_grupos') {
+      const concluida = await verificarFaseGruposConcluida(campeonatoId)
+      if (concluida) {
+        await gerarMataMataAposGrupos(campeonatoId)
+      }
+    }
   }
 
   revalidatePath(`/campeonatos/${campeonatoId}`)
@@ -99,10 +128,21 @@ export async function registrarResultadoInlineAction(
 
   try {
     const campeonato = await getCampeonato(campeonatoId)
-    if (campeonato?.formato === 'copa_mata_mata') {
+    const partida = await getPartida(partidaId)
+
+    if (campeonato?.formato === 'copa_mata_mata' ||
+        (campeonato?.formato === 'copa_grupos' && partida?.posicaoChave != null)) {
       await registrarResultadoMataMata(partidaId, golsMandante, golsVisitante, penaltisMandante, penaltisVisitante)
     } else {
       await registrarResultado(partidaId, golsMandante, golsVisitante)
+
+      // Copa grupos: verificar transição para mata-mata
+      if (campeonato?.formato === 'copa_grupos') {
+        const concluida = await verificarFaseGruposConcluida(campeonatoId)
+        if (concluida) {
+          await gerarMataMataAposGrupos(campeonatoId)
+        }
+      }
     }
 
     revalidatePath(`/campeonatos/${campeonatoId}`)

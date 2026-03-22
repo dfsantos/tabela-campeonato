@@ -28,7 +28,6 @@ const formatos: Array<{
     value: 'copa_grupos',
     title: 'Copa (Grupos + Mata-mata)',
     description: 'Fase de grupos seguida de eliminatórias até a final.',
-    emBreve: true,
     icon: (
       <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
         <rect x="4" y="6" width="10" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />

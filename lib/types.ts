@@ -21,6 +21,7 @@ export interface Partida {
   posicaoChave?: number
   penaltisMandante?: number
   penaltisVisitante?: number
+  grupo?: number
 }
 
 export interface ClassificacaoItem {
@@ -50,9 +51,18 @@ export interface Pais {
   bandeira: string | null
 }
 
+export interface GruposConfig {
+  numGrupos: number
+  timesPorGrupo: number
+  classificadosPorGrupo: number
+  melhoresRestantes: number
+  turnoRetorno: boolean
+}
+
 export interface CopaConfig {
   totalRodadas: number
   totalSlots: number
+  gruposConfig?: GruposConfig
 }
 
 export interface Campeonato {
@@ -63,6 +73,13 @@ export interface Campeonato {
   formato: CampeonatoFormato
   zonas?: Zonas
   copaConfig?: CopaConfig
+}
+
+export interface GrupoInfo {
+  numero: number
+  nome: string
+  times: Time[]
+  classificacao: ClassificacaoItem[]
 }
 
 export interface ChaveamentoConfronto {

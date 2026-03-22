@@ -11,7 +11,9 @@ export default async function CampeonatoPage({ params }: Props) {
   const { id } = await params
   const campeonato = await getCampeonato(id)
 
-  if (campeonato?.formato === 'copa_mata_mata') {
+  if (campeonato?.formato === 'copa_grupos') {
+    redirect(`/campeonatos/${id}/grupos`)
+  } else if (campeonato?.formato === 'copa_mata_mata') {
     redirect(`/campeonatos/${id}/chaveamento`)
   } else {
     redirect(`/campeonatos/${id}/classificacao`)
