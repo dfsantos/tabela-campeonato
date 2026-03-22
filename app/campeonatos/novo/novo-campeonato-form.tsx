@@ -42,7 +42,11 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
     const e = Number(zonaElite) || 0
     const s = Number(zonaSegundo) || 0
     const r = Number(zonaRebaixamento) || 0
-    if (e + s + r > selectedCount) return `Soma (${e + s + r}) excede o número de times (${selectedCount})`
+    if (s && e && s <= e) return `2º Pelotão (pos. ${s}) deve ser maior que Elite (pos. ${e})`
+    const lastZonedPos = s || e
+    if (r && lastZonedPos && lastZonedPos + r > selectedCount) return `Zonas se sobrepõem: pos. ${lastZonedPos} + ${r} rebaixados > ${selectedCount} times`
+    if (e > selectedCount) return `Elite (pos. ${e}) excede o número de times (${selectedCount})`
+    if (s > selectedCount) return `2º Pelotão (pos. ${s}) excede o número de times (${selectedCount})`
     return null
   }, [zonaElite, zonaSegundo, zonaRebaixamento, selectedCount])
 
@@ -210,7 +214,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                   <div className="flex items-center gap-3">
                     <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-primary" />
                     <label className="flex flex-1 items-center gap-2 text-sm text-on-surface">
-                      <span className="w-28 flex-shrink-0">Elite (top N):</span>
+                      <span className="w-28 flex-shrink-0">Elite (até pos.):</span>
                       <input
                         type="number"
                         name="zonaElite"
@@ -220,14 +224,14 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                         placeholder="—"
                         className="w-20 rounded-md border-none bg-surface-container-lowest px-2 py-1 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <span className="font-label text-[10px] text-on-surface-variant">times</span>
+                      {zonaElite && <span className="font-label text-[10px] text-on-surface-variant">pos. 1–{zonaElite}</span>}
                     </label>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-sky-500" />
                     <label className="flex flex-1 items-center gap-2 text-sm text-on-surface">
-                      <span className="w-28 flex-shrink-0">2º Pelotão:</span>
+                      <span className="w-28 flex-shrink-0">2º Pelotão (até pos.):</span>
                       <input
                         type="number"
                         name="zonaSegundoPelotao"
@@ -237,7 +241,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                         placeholder="—"
                         className="w-20 rounded-md border-none bg-surface-container-lowest px-2 py-1 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <span className="font-label text-[10px] text-on-surface-variant">times</span>
+                      {zonaSegundo && zonaElite && <span className="font-label text-[10px] text-on-surface-variant">pos. {Number(zonaElite) + 1}–{zonaSegundo}</span>}
                     </label>
                   </div>
 
@@ -254,7 +258,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                         placeholder="—"
                         className="w-20 rounded-md border-none bg-surface-container-lowest px-2 py-1 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <span className="font-label text-[10px] text-on-surface-variant">times</span>
+                      <span className="font-label text-[10px] text-on-surface-variant">últimos times</span>
                     </label>
                   </div>
 
