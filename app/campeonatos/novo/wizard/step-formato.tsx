@@ -43,7 +43,6 @@ const formatos: Array<{
     value: 'copa_mata_mata',
     title: 'Copa (Mata-mata)',
     description: 'Eliminatórias diretas desde a primeira rodada até a final.',
-    emBreve: true,
     icon: (
       <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
         <path d="M6 8H12V12H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

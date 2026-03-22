@@ -86,6 +86,25 @@ MVP funcional com persistência em Vercel Postgres. Registro de partidas, regist
 - Layout responsivo com sidebar (desktop) e hamburger menu (mobile)
 - Tonal layering para elevação (sem borders de 1px), gradient buttons
 
+### Formato Copa Mata-Mata (eliminatórias)
+- `lib/db/schema.sql` — novas colunas: `posicao_chave`, `penaltis_mandante`, `penaltis_visitante` em `partidas`; `copa_config` JSONB em `campeonatos`
+- `lib/types.ts` — interfaces `CopaConfig`, `ChaveamentoRodada`, `ChaveamentoConfronto`; campos `posicaoChave`, `penaltisMandante`, `penaltisVisitante` em `Partida`; `copaConfig` em `Campeonato`
+- `lib/mata-mata.ts` — **novo**: helpers puros (`proximaPotenciaDe2`, `totalRodadasFromSlots`, `nomeFase`, `shuffleArray`, `calcularByeSlots`, `getVencedor`, `gerarLabelsFases`)
+- `lib/store.ts` — novas funções: `gerarPartidasMataMata`, `gerarProximaRodadaMataMata`, `registrarResultadoMataMata`, `getChaveamento`; `addCampeonato` adaptado para copa; `mapPartidaRow`, `getPartidas`, `getPartida`, `getCampeonato(s)` incluem novas colunas
+- `lib/actions.ts` — `criarCampeonatoAction` aceita `copa_mata_mata`; `registrarResultadoInlineAction` e `registrarResultadoAction` suportam pênaltis
+- `app/campeonatos/novo/wizard/step-formato.tsx` — copa_mata_mata habilitado (removido "Em breve")
+- `app/campeonatos/novo/wizard/step-participantes.tsx` — info contextual: byes, fases, chaveamento
+- `app/campeonatos/novo/wizard/step-resumo.tsx` — resumo com estrutura do bracket para copa
+- `app/campeonatos/novo/novo-campeonato-form.tsx` — `canSubmit` e `canAdvanceFromStep` permitem copa_mata_mata
+- `app/campeonatos/[id]/page.tsx` — redirect condicional: liga→classificacao, copa→chaveamento
+- `app/campeonatos/[id]/chaveamento/page.tsx` — **novo**: Server Component para visualização do bracket
+- `app/campeonatos/[id]/chaveamento/bracket-view.tsx` — **novo**: Client Component com bracket horizontal, inputs inline, pênaltis, indicador de campeão
+- `app/campeonatos/[id]/partidas/page.tsx` — passa formato e totalRodadas para o content
+- `app/campeonatos/[id]/partidas/partidas-content.tsx` — nomes de fase para mata-mata, indicador de pênaltis
+- `app/sidebar.tsx` — menu condicional: "Chaveamento" para copa, "Classificação" para liga
+- `app/api/campeonatos/[id]/route.ts` — retorna `formato` na resposta
+
 ## Em andamento
 
-_Nenhuma tarefa em andamento._
+### Pendente: migration do banco
+- As novas colunas precisam ser criadas no Vercel Postgres (ALTER TABLE). O schema.sql já está atualizado. Executar quando houver acesso ao banco.

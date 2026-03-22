@@ -2,15 +2,19 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { type Partida } from '@/lib/types'
+import { type CampeonatoFormato, type Partida } from '@/lib/types'
 import { registrarResultadoInlineAction } from '@/lib/actions'
+import { nomeFase } from '@/lib/mata-mata'
 
 interface Props {
   partidas: Partida[]
   campeonatoId: string
+  formato?: CampeonatoFormato
+  totalRodadas?: number
 }
 
-export function PartidasContent({ partidas, campeonatoId }: Props) {
+export function PartidasContent({ partidas, campeonatoId, formato, totalRodadas: totalRodadasProp }: Props) {
+  const isMataMata = formato === 'copa_mata_mata'
   const porRodada = partidas.reduce<Record<number, Partida[]>>((acc, p) => {
     ;(acc[p.rodada] ??= []).push(p)
     return acc
@@ -79,7 +83,9 @@ export function PartidasContent({ partidas, campeonatoId }: Props) {
         </button>
 
         <span className="font-headline text-sm font-bold text-on-surface">
-          Rodada {rodadaAtual}
+          {isMataMata && totalRodadasProp
+            ? nomeFase(rodadaAtual, totalRodadasProp)
+            : `Rodada ${rodadaAtual}`}
           <span className="ml-1.5 font-label text-[10px] font-normal uppercase tracking-widest text-on-surface-variant">
             de {rodadas.length}
           </span>
@@ -146,6 +152,12 @@ export function PartidasContent({ partidas, campeonatoId }: Props) {
                 )}
               </span>
             </div>
+            {/* Indicador de pênaltis */}
+            {p.penaltisMandante != null && p.penaltisVisitante != null && (
+              <span className="ml-2 shrink-0 rounded-full bg-surface-container-low px-2 py-0.5 font-label text-[9px] text-on-surface-variant">
+                PEN {p.penaltisMandante}–{p.penaltisVisitante}
+              </span>
+            )}
           </li>
         ))}
       </ul>

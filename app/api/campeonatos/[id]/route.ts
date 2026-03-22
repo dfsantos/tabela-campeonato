@@ -10,5 +10,5 @@ export async function GET(
   if (!campeonato) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
-  return NextResponse.json({ nome: campeonato.nome })
+  return NextResponse.json({ nome: campeonato.nome, formato: campeonato.formato })
 }

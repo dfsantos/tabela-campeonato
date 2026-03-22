@@ -40,5 +40,22 @@ a migração para um banco de dados não exija reescrita das regras de negócio.
 
 ---
 
+## 2026-03-22 — Copa Mata-Mata
+
+**Bracket via `posicao_chave` na tabela `partidas`**
+- Decisão: Reutilizar a tabela `partidas` com uma coluna `posicao_chave` (posição no bracket) em vez de criar tabela separada de confrontos.
+- Raciocínio: Menor impacto no schema existente. A progressão do bracket é derivada dos resultados (princípio do projeto). Winners de posições 2k-1 e 2k alimentam posição k da rodada seguinte.
+- Consequência: Byes não geram partida (time avança direto). A geração de rodadas seguintes é automática após todas as partidas da rodada atual serem finalizadas.
+
+**Pênaltis como colunas na partida (não entidade separada)**
+- Decisão: `penaltis_mandante` e `penaltis_visitante` como colunas INTEGER nullable em `partidas`.
+- Raciocínio: Simplicidade. Só preenchidos quando placar empata em mata-mata. Para liga são sempre NULL.
+- Consequência: O vencedor é determinado por: gols (se diferentes) ou pênaltis (se gols iguais).
+
+**Single-leg primeiro, ida-e-volta depois**
+- Decisão: Copa mata-mata v1 é apenas jogo de ida (single-leg).
+- Raciocínio: Ida e volta exigiria vincular pares de partidas, placar agregado e regras de desempate adicionais. Complexidade desproporcional para o MVP.
+- Consequência: Futuro suporte a ida-e-volta pode exigir coluna `confronto_id` para vincular partidas.
+
 _Registrar aqui decisões técnicas tomadas durante o desenvolvimento,
 não apenas decisões do produto._

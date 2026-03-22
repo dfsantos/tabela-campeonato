@@ -32,6 +32,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [campeonatoNome, setCampeonatoNome] = useState<string | null>(null)
+  const [campeonatoFormato, setCampeonatoFormato] = useState<string | null>(null)
 
   const campeonatoMatch = pathname.match(/^\/campeonatos\/([^/]+)/)
   const campeonatoId = campeonatoMatch?.[1]
@@ -39,12 +40,19 @@ export function Sidebar() {
   useEffect(() => {
     if (!campeonatoId || campeonatoId === 'novo') {
       setCampeonatoNome(null)
+      setCampeonatoFormato(null)
       return
     }
     fetch(`/api/campeonatos/${campeonatoId}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setCampeonatoNome(data?.nome ?? null))
-      .catch(() => setCampeonatoNome(null))
+      .then((data) => {
+        setCampeonatoNome(data?.nome ?? null)
+        setCampeonatoFormato(data?.formato ?? null)
+      })
+      .catch(() => {
+        setCampeonatoNome(null)
+        setCampeonatoFormato(null)
+      })
   }, [campeonatoId])
 
   const sidebarContent = (
@@ -87,16 +95,31 @@ export function Sidebar() {
       {(() => {
         if (!campeonatoId || campeonatoId === 'novo') return null
 
+        const isMataMata = campeonatoFormato === 'copa_mata_mata'
+
         const campeonatoItems = [
-          {
-            label: 'Classificação',
-            href: `/campeonatos/${campeonatoId}/classificacao`,
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <path d="M2 12H5V6H2V12ZM6.5 12H9.5V2H6.5V12ZM11 12H14V8H11V12Z" fill="currentColor" />
-              </svg>
-            ),
-          },
+          isMataMata
+            ? {
+                label: 'Chaveamento',
+                href: `/campeonatos/${campeonatoId}/chaveamento`,
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 4H7V6H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M3 10H7V12H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M7 5H11V11H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
+                    <path d="M11 8H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                ),
+              }
+            : {
+                label: 'Classificação',
+                href: `/campeonatos/${campeonatoId}/classificacao`,
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 12H5V6H2V12ZM6.5 12H9.5V2H6.5V12ZM11 12H14V8H11V12Z" fill="currentColor" />
+                  </svg>
+                ),
+              },
           {
             label: 'Partidas',
             href: `/campeonatos/${campeonatoId}/partidas`,

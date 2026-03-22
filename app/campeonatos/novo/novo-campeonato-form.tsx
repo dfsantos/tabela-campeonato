@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useReducer, useEffect, useMemo, useCallback } from 'react'
+import { useFormStatus } from 'react-dom'
 import type { CampeonatoFormato, Time } from '@/lib/types'
 import { criarCampeonatoAction } from '@/lib/actions'
 import WizardStepper from './wizard/wizard-stepper'
@@ -120,6 +121,19 @@ function getStepLabels(stepIds: StepId[]): Array<{ label: string }> {
   return stepIds.map((id) => ({ label: labels[id] }))
 }
 
+function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={!canSubmit || pending}
+      className="rounded-lg bg-gradient-to-r from-primary to-primary-container px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
+    >
+      {pending ? 'Criando...' : 'Criar campeonato'}
+    </button>
+  )
+}
+
 export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
@@ -162,7 +176,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
       case 'zonas':
         return !zonaError
       case 'resumo':
-        return state.formato === 'liga'
+        return state.formato === 'liga' || state.formato === 'copa_mata_mata'
       default:
         return false
     }
@@ -170,7 +184,8 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
 
   const canAdvance = canAdvanceFromStep(currentStepId)
   const isLastStep = currentStepId === 'resumo'
-  const canSubmit = isLastStep && state.formato === 'liga' && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && !zonaError
+  const formatoSuportado = state.formato === 'liga' || state.formato === 'copa_mata_mata'
+  const canSubmit = isLastStep && formatoSuportado && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && (state.formato !== 'liga' || !zonaError)
 
   const handleNext = () => {
     if (canAdvance && !isLastStep) {
@@ -304,13 +319,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
             <div className="flex-1" />
 
             {isLastStep ? (
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="rounded-lg bg-gradient-to-r from-primary to-primary-container px-6 py-2.5 font-headline text-xs font-bold uppercase tracking-wider text-on-primary transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                Criar campeonato
-              </button>
+              <SubmitButton canSubmit={canSubmit} />
             ) : (
               <button
                 type="button"
