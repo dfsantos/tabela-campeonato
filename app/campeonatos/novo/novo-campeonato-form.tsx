@@ -265,6 +265,12 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
               )}
             </div>
 
+            {Array.from(selectedTimeIds)
+              .filter(id => !timesFiltrados.some(t => t.id === id))
+              .map(id => (
+                <input key={id} type="hidden" name="timeIds" value={id} />
+              ))}
+
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
