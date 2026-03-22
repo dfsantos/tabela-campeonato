@@ -1,4 +1,5 @@
 import type { CampeonatoFormato, Time } from '@/lib/types'
+import { proximaPotenciaDe2, totalRodadasFromSlots, gerarLabelsFases } from '@/lib/mata-mata'
 
 interface StepResumoProps {
   formato: CampeonatoFormato | null
@@ -35,7 +36,6 @@ export default function StepResumo({
   const selectedTimes = times.filter((t) => selectedTimeIds.has(t.id))
   const hasZonas = zonaCampeao || zonaElite || zonaSegundo || zonaRebaixamento
   const isLiga = formato === 'liga'
-  const isCopa = formato === 'copa_grupos' || formato === 'copa_mata_mata'
 
   return (
     <div>
@@ -160,7 +160,7 @@ export default function StepResumo({
           </div>
         )}
 
-        {/* Info de partidas */}
+        {/* Info de partidas — Liga */}
         {isLiga && selectedCount >= 2 && (
           <p className="font-label text-[10px] text-on-surface-variant">
             {selectedCount * (selectedCount - 1)} partidas em{' '}
@@ -171,14 +171,41 @@ export default function StepResumo({
           </p>
         )}
 
-        {/* Aviso Copa */}
-        {isCopa && (
+        {/* Info de partidas — Copa Mata-mata */}
+        {formato === 'copa_mata_mata' && selectedCount >= 2 && (() => {
+          const slots = proximaPotenciaDe2(selectedCount)
+          const rodadas = totalRodadasFromSlots(slots)
+          const byes = slots - selectedCount
+          const fases = gerarLabelsFases(rodadas)
+          const jogosRodada1 = slots / 2 - byes
+
+          return (
+            <div className="rounded-lg bg-surface-container-low p-4">
+              <span className="mb-2 block font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                Estrutura do chaveamento
+              </span>
+              <div className="space-y-1.5 text-xs text-on-surface">
+                <p>{fases.join(' → ')}</p>
+                <p className="text-on-surface-variant">
+                  {jogosRodada1} {jogosRodada1 === 1 ? 'jogo' : 'jogos'} na primeira fase
+                  {byes > 0 && ` · ${byes} ${byes === 1 ? 'bye' : 'byes'}`}
+                </p>
+                <p className="text-on-surface-variant">
+                  Confrontos sorteados automaticamente
+                </p>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Aviso Copa Grupos (ainda não disponível) */}
+        {formato === 'copa_grupos' && (
           <div className="rounded-lg bg-surface-container p-4 text-center">
             <p className="text-sm font-medium text-on-surface-variant">
-              O formato <span className="font-bold">{formato ? formatoLabels[formato] : ''}</span> ainda não está disponível.
+              O formato <span className="font-bold">{formatoLabels[formato]}</span> ainda não está disponível.
             </p>
             <p className="mt-1 text-xs text-on-surface-variant">
-              Volte e selecione Liga para criar o campeonato.
+              Volte e selecione outro formato para criar o campeonato.
             </p>
           </div>
         )}

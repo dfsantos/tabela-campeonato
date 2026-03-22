@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addCampeonato, addTime, deleteCampeonato, registrarResultado } from './store'
+import { addCampeonato, addTime, deleteCampeonato, getCampeonato, registrarResultado, registrarResultadoMataMata } from './store'
 import { validateZonas } from './zonas'
 import type { CampeonatoFormato, Zonas } from './types'
 
@@ -28,24 +28,28 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
 
   const formatosValidos: CampeonatoFormato[] = ['liga', 'copa_grupos', 'copa_mata_mata']
   if (!formatosValidos.includes(formato)) throw new Error('Formato inválido')
-  if (formato !== 'liga') throw new Error('Formato ainda não suportado')
+  if (formato === 'copa_grupos') throw new Error('Formato ainda não suportado')
 
-  const campeao = formData.get('zonaCampeao') === 'on'
-  const elite = Number(formData.get('zonaElite')) || undefined
-  const segundoPelotao = Number(formData.get('zonaSegundoPelotao')) || undefined
-  const rebaixamento = Number(formData.get('zonaRebaixamento')) || undefined
+  // Zonas são apenas para liga
+  let zonas: Zonas | undefined
+  if (formato === 'liga') {
+    const campeao = formData.get('zonaCampeao') === 'on'
+    const elite = Number(formData.get('zonaElite')) || undefined
+    const segundoPelotao = Number(formData.get('zonaSegundoPelotao')) || undefined
+    const rebaixamento = Number(formData.get('zonaRebaixamento')) || undefined
 
-  const hasZonas = campeao || elite || segundoPelotao || rebaixamento
-  const zonas: Zonas | undefined = hasZonas
-    ? { ...(campeao && { campeao }), ...(elite && { elite }), ...(segundoPelotao && { segundoPelotao }), ...(rebaixamento && { rebaixamento }) }
-    : undefined
+    const hasZonas = campeao || elite || segundoPelotao || rebaixamento
+    zonas = hasZonas
+      ? { ...(campeao && { campeao }), ...(elite && { elite }), ...(segundoPelotao && { segundoPelotao }), ...(rebaixamento && { rebaixamento }) }
+      : undefined
 
-  if (zonas) {
-    const error = validateZonas(zonas, timeIds.length)
-    if (error) throw new Error(error)
+    if (zonas) {
+      const error = validateZonas(zonas, timeIds.length)
+      if (error) throw new Error(error)
+    }
   }
 
-  const gerarPartidas = formato === 'liga'
+  const gerarPartidas = formato === 'liga' || formato === 'copa_mata_mata'
   const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas, formato)
   revalidatePath('/')
   redirect(`/campeonatos/${campeonato.id}`)
@@ -66,7 +70,17 @@ export async function registrarResultadoAction(formData: FormData): Promise<void
 
   if (golsMandante < 0 || golsVisitante < 0) throw new Error('Gols inválidos')
 
-  await registrarResultado(partidaId, golsMandante, golsVisitante)
+  const campeonato = await getCampeonato(campeonatoId)
+  if (campeonato?.formato === 'copa_mata_mata') {
+    const penM = formData.get('penaltisMandante')
+    const penV = formData.get('penaltisVisitante')
+    const penaltisMandante = penM != null ? parseInt(penM as string, 10) : undefined
+    const penaltisVisitante = penV != null ? parseInt(penV as string, 10) : undefined
+    await registrarResultadoMataMata(partidaId, golsMandante, golsVisitante, penaltisMandante, penaltisVisitante)
+  } else {
+    await registrarResultado(partidaId, golsMandante, golsVisitante)
+  }
+
   revalidatePath(`/campeonatos/${campeonatoId}`)
   redirect(`/campeonatos/${campeonatoId}/partidas`)
 }
@@ -76,12 +90,24 @@ export async function registrarResultadoInlineAction(
   campeonatoId: string,
   golsMandante: number,
   golsVisitante: number,
+  penaltisMandante?: number,
+  penaltisVisitante?: number,
 ): Promise<{ success: boolean; error?: string }> {
   if (golsMandante < 0 || golsVisitante < 0) {
     return { success: false, error: 'Gols inválidos' }
   }
 
-  await registrarResultado(partidaId, golsMandante, golsVisitante)
-  revalidatePath(`/campeonatos/${campeonatoId}`)
-  return { success: true }
+  try {
+    const campeonato = await getCampeonato(campeonatoId)
+    if (campeonato?.formato === 'copa_mata_mata') {
+      await registrarResultadoMataMata(partidaId, golsMandante, golsVisitante, penaltisMandante, penaltisVisitante)
+    } else {
+      await registrarResultado(partidaId, golsMandante, golsVisitante)
+    }
+
+    revalidatePath(`/campeonatos/${campeonatoId}`)
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Erro ao registrar resultado' }
+  }
 }

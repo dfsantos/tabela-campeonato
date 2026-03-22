@@ -18,6 +18,9 @@ export interface Partida {
   golsMandante?: number
   golsVisitante?: number
   status: PartidaStatus
+  posicaoChave?: number
+  penaltisMandante?: number
+  penaltisVisitante?: number
 }
 
 export interface ClassificacaoItem {
@@ -47,6 +50,11 @@ export interface Pais {
   bandeira: string | null
 }
 
+export interface CopaConfig {
+  totalRodadas: number
+  totalSlots: number
+}
+
 export interface Campeonato {
   id: string
   nome: string
@@ -54,4 +62,19 @@ export interface Campeonato {
   status: CampeonatoStatus
   formato: CampeonatoFormato
   zonas?: Zonas
+  copaConfig?: CopaConfig
+}
+
+export interface ChaveamentoConfronto {
+  posicao: number
+  partida?: Partida
+  mandanteLabel?: string
+  visitanteLabel?: string
+  isBye?: boolean
+}
+
+export interface ChaveamentoRodada {
+  rodada: number
+  nomeFase: string
+  confrontos: ChaveamentoConfronto[]
 }

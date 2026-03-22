@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS campeonatos (
   temporada TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'planejado',
   formato TEXT NOT NULL DEFAULT 'liga',
-  zonas JSONB
+  zonas JSONB,
+  copa_config JSONB
 );
 
 CREATE TABLE IF NOT EXISTS participantes (
@@ -28,7 +29,10 @@ CREATE TABLE IF NOT EXISTS partidas (
   data TEXT NOT NULL DEFAULT '',
   gols_mandante INTEGER,
   gols_visitante INTEGER,
-  status TEXT NOT NULL DEFAULT 'agendada'
+  status TEXT NOT NULL DEFAULT 'agendada',
+  posicao_chave INTEGER,
+  penaltis_mandante INTEGER,
+  penaltis_visitante INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS paises (

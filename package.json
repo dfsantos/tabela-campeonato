@@ -10,7 +10,8 @@
     "db:seed": "npx tsx --env-file=.env.local lib/db/seed.ts",
     "db:migrate-times": "npx tsx --env-file=.env.local lib/db/migrate-times.ts",
     "db:seed-paises": "npx tsx --env-file=.env.local lib/db/seed-paises.ts",
-    "db:seed-ligas": "npx tsx --env-file=.env.local lib/db/seed-ligas.ts"
+    "db:seed-ligas": "npx tsx --env-file=.env.local lib/db/seed-ligas.ts",
+    "db:migrate": "npx tsx --env-file=.env.local lib/db/migrate.ts"
   },
   "dependencies": {
     "next": "16.1.6",

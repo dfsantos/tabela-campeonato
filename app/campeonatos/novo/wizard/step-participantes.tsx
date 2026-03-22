@@ -1,4 +1,5 @@
 import type { Time } from '@/lib/types'
+import { proximaPotenciaDe2, totalRodadasFromSlots, gerarLabelsFases } from '@/lib/mata-mata'
 
 interface StepParticipantesProps {
   nome: string
@@ -138,6 +139,31 @@ export default function StepParticipantes({
             rodadas serão geradas automaticamente.
           </p>
         )}
+
+        {formato === 'copa_mata_mata' && selectedCount >= 2 && (() => {
+          const slots = proximaPotenciaDe2(selectedCount)
+          const rodadas = totalRodadasFromSlots(slots)
+          const byes = slots - selectedCount
+          const fases = gerarLabelsFases(rodadas)
+          const jogosRodada1 = slots / 2 - byes
+
+          return (
+            <div className="space-y-1">
+              {byes === 0 ? (
+                <p className="font-label text-[10px] text-primary font-bold">
+                  Chaveamento perfeito — {jogosRodada1} confrontos na primeira rodada
+                </p>
+              ) : (
+                <p className="font-label text-[10px] text-on-surface-variant">
+                  {byes} {byes === 1 ? 'time avança' : 'times avançam'} automaticamente (bye) — chaveamento de {slots}
+                </p>
+              )}
+              <p className="font-label text-[10px] text-on-surface-variant">
+                {fases.join(' → ')}
+              </p>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
