@@ -58,11 +58,17 @@ export async function getPais(id: string): Promise<Pais | undefined> {
 }
 
 export async function getTimes(): Promise<Time[]> {
-  const rows = await sql`SELECT id, nome, cidade FROM times ORDER BY nome`
+  const rows = await sql`
+    SELECT t.id, t.nome, t.cidade, pa.nome AS pais_nome
+    FROM times t
+    LEFT JOIN paises pa ON pa.id = t.pais_id
+    ORDER BY t.nome
+  `
   return rows.map((r) => ({
     id: String(r.id),
     nome: r.nome as string,
     ...(r.cidade ? { cidade: r.cidade as string } : {}),
+    paisNome: (r.pais_nome as string) ?? null,
   }))
 }
 
@@ -135,19 +141,6 @@ function mapPartidaRow(r: Record<string, any>): Partida {
     ...(r.penaltis_mandante != null ? { penaltisMandante: r.penaltis_mandante as number } : {}),
     ...(r.penaltis_visitante != null ? { penaltisVisitante: r.penaltis_visitante as number } : {}),
     ...(r.grupo != null ? { grupo: r.grupo as number } : {}),
-  }
-}
-
-export async function addTime(nome: string, cidade?: string): Promise<Time> {
-  const rows = await sql`
-    INSERT INTO times (nome, cidade) VALUES (${nome}, ${cidade ?? null})
-    RETURNING id, nome, cidade
-  `
-  const r = rows[0]
-  return {
-    id: String(r.id),
-    nome: r.nome as string,
-    ...(r.cidade ? { cidade: r.cidade as string } : {}),
   }
 }
 

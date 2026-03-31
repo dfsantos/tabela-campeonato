@@ -1,7 +1,15 @@
+CREATE TABLE IF NOT EXISTS paises (
+  id SERIAL PRIMARY KEY,
+  nome TEXT NOT NULL,
+  codigo TEXT,
+  bandeira TEXT
+);
+
 CREATE TABLE IF NOT EXISTS times (
   id SERIAL PRIMARY KEY,
   nome TEXT NOT NULL,
-  cidade TEXT
+  cidade TEXT,
+  pais_id INTEGER REFERENCES paises(id)
 );
 
 CREATE TABLE IF NOT EXISTS campeonatos (
@@ -35,13 +43,6 @@ CREATE TABLE IF NOT EXISTS partidas (
   penaltis_mandante INTEGER,
   penaltis_visitante INTEGER,
   grupo INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS paises (
-  id SERIAL PRIMARY KEY,
-  nome TEXT NOT NULL,
-  codigo TEXT,
-  bandeira TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ligas (

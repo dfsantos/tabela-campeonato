@@ -6,6 +6,7 @@ export interface Time {
   id: string
   nome: string
   cidade?: string
+  paisNome?: string | null
 }
 
 export interface Partida {
