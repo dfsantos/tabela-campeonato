@@ -28,6 +28,9 @@ export default function StepParticipantes({
   onToggleTime,
   onSetFiltro,
 }: StepParticipantesProps) {
+  const MAX_TIMES_POR_FORMATO = { liga: 24, copa_mata_mata: 126, copa_grupos: 48 } as const
+  const maxTimes = MAX_TIMES_POR_FORMATO[formato as keyof typeof MAX_TIMES_POR_FORMATO] ?? 24
+
   return (
     <div>
       <h2 className="mb-1 font-headline text-lg font-bold text-on-surface">
@@ -104,7 +107,7 @@ export default function StepParticipantes({
                       type="checkbox"
                       checked={selectedTimeIds.has(time.id)}
                       onChange={() => onToggleTime(time.id)}
-                      disabled={!selectedTimeIds.has(time.id) && selectedCount >= 24}
+                      disabled={!selectedTimeIds.has(time.id) && selectedCount >= maxTimes}
                       className="h-4 w-4 rounded accent-primary disabled:cursor-not-allowed disabled:opacity-50"
                     />
                     <div>
@@ -123,9 +126,9 @@ export default function StepParticipantes({
               Selecione ao menos 1 time adicional
             </p>
           )}
-          {selectedCount > 24 && (
+          {selectedCount > maxTimes && (
             <p className="mt-1.5 font-label text-[10px] text-error">
-              Máximo de 24 times atingido
+              Máximo de {maxTimes} times atingido
             </p>
           )}
         </div>

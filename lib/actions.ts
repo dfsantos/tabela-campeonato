@@ -15,7 +15,9 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   if (!nome) throw new Error('Nome é obrigatório')
   if (!temporada) throw new Error('Temporada é obrigatória')
   if (timeIds.length < 2) throw new Error('Selecione ao menos 2 times')
-  if (timeIds.length > 24) throw new Error('Um campeonato pode ter no máximo 24 times')
+  const MAX_TIMES_POR_FORMATO = { liga: 24, copa_mata_mata: 126, copa_grupos: 48 } as const
+  const maxTimes = MAX_TIMES_POR_FORMATO[formato as keyof typeof MAX_TIMES_POR_FORMATO] ?? 24
+  if (timeIds.length > maxTimes) throw new Error(`Máximo de ${maxTimes} times para este formato`)
 
   const formatosValidos: CampeonatoFormato[] = ['liga', 'copa_grupos', 'copa_mata_mata']
   if (!formatosValidos.includes(formato)) throw new Error('Formato inválido')

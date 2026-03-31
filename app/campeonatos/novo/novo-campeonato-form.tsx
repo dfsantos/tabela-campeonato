@@ -204,7 +204,9 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
         return state.formato !== null
       case 'participantes': {
         const minTimes = state.formato === 'copa_grupos' ? 6 : 2
-        return state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= minTimes && selectedCount <= 24
+        const MAX_TIMES_POR_FORMATO = { liga: 24, copa_mata_mata: 126, copa_grupos: 48 } as const
+        const maxTimes = MAX_TIMES_POR_FORMATO[state.formato ?? 'liga'] ?? 24
+        return state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= minTimes && selectedCount <= maxTimes
       }
       case 'zonas':
         return !zonaError
@@ -229,7 +231,9 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
 
   const canAdvance = canAdvanceFromStep(currentStepId)
   const isLastStep = currentStepId === 'resumo'
-  const canSubmit = isLastStep && canAdvanceFromStep('resumo') && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= 24 && (state.formato !== 'liga' || !zonaError)
+  const MAX_TIMES_POR_FORMATO = { liga: 24, copa_mata_mata: 126, copa_grupos: 48 } as const
+  const maxTimesSubmit = MAX_TIMES_POR_FORMATO[state.formato ?? 'liga'] ?? 24
+  const canSubmit = isLastStep && canAdvanceFromStep('resumo') && state.nome.trim().length > 0 && state.temporada.trim().length > 0 && selectedCount >= 2 && selectedCount <= maxTimesSubmit && (state.formato !== 'liga' || !zonaError)
 
   const handleNext = () => {
     if (canAdvance && !isLastStep) {
