@@ -2,18 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { addCampeonato, addTime, deleteCampeonato, getCampeonato, getPartida, gerarMataMataAposGrupos, registrarResultado, registrarResultadoMataMata, verificarFaseGruposConcluida } from './store'
+import { addCampeonato, deleteCampeonato, getCampeonato, getPartida, gerarMataMataAposGrupos, registrarResultado, registrarResultadoMataMata, verificarFaseGruposConcluida } from './store'
 import { validateZonas } from './zonas'
 import type { CampeonatoFormato, GruposConfig, Zonas } from './types'
-
-export async function criarTimeAction(formData: FormData): Promise<void> {
-  const nome = formData.get('nome')?.toString().trim()
-  const cidade = formData.get('cidade')?.toString().trim() || undefined
-  if (!nome) throw new Error('Nome é obrigatório')
-  await addTime(nome, cidade)
-  revalidatePath('/times')
-  redirect('/times')
-}
 
 export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   const nome = (formData.get('nome') as string).trim()

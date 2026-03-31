@@ -11,6 +11,7 @@
     "db:migrate-times": "npx tsx --env-file=.env.local lib/db/migrate-times.ts",
     "db:seed-paises": "npx tsx --env-file=.env.local lib/db/seed-paises.ts",
     "db:seed-ligas": "npx tsx --env-file=.env.local lib/db/seed-ligas.ts",
+    "db:migrate-pais-times": "npx tsx --env-file=.env.local lib/db/migrate-pais-times.ts",
     "db:migrate": "npx tsx --env-file=.env.local lib/db/migrate.ts"
   },
   "dependencies": {
