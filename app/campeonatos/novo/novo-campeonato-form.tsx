@@ -20,6 +20,7 @@ type WizardState = {
   selectedTimeIds: Set<string>
   filtroNome: string
   filtroAtivo: string
+  filtroPais: string
   zonaCampeao: boolean
   zonaElite: string
   zonaSegundo: string
@@ -36,6 +37,7 @@ type WizardAction =
   | { type: 'TOGGLE_TIME'; id: string }
   | { type: 'SET_FILTRO'; value: string }
   | { type: 'SET_FILTRO_ATIVO'; value: string }
+  | { type: 'SET_FILTRO_PAIS'; value: string }
   | { type: 'SET_ZONA_CAMPEAO'; value: boolean }
   | { type: 'SET_ZONA_ELITE'; value: string }
   | { type: 'SET_ZONA_SEGUNDO'; value: string }
@@ -56,6 +58,7 @@ const initialState: WizardState = {
   selectedTimeIds: new Set(),
   filtroNome: '',
   filtroAtivo: '',
+  filtroPais: '',
   zonaCampeao: false,
   zonaElite: '',
   zonaSegundo: '',
@@ -97,6 +100,8 @@ function reducer(state: WizardState, action: WizardAction): WizardState {
       return { ...state, filtroNome: action.value }
     case 'SET_FILTRO_ATIVO':
       return { ...state, filtroAtivo: action.value }
+    case 'SET_FILTRO_PAIS':
+      return { ...state, filtroPais: action.value }
     case 'SET_ZONA_CAMPEAO':
       return { ...state, zonaCampeao: action.value }
     case 'SET_ZONA_ELITE':
@@ -190,9 +195,22 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
     return null
   }, [state.zonaElite, state.zonaSegundo, state.zonaRebaixamento, selectedCount])
 
-  const timesFiltrados = state.filtroAtivo.trim().length >= 3
-    ? times.filter(t => t.nome.toLowerCase().includes(state.filtroAtivo.trim().toLowerCase()))
-    : times
+  const paises = useMemo(
+    () => [...new Set(times.map((t) => t.paisNome).filter(Boolean) as string[])].sort(),
+    [times],
+  )
+
+  const timesFiltrados = useMemo(
+    () =>
+      times
+        .filter((t) => state.filtroPais === '' || t.paisNome === state.filtroPais)
+        .filter(
+          (t) =>
+            state.filtroAtivo.trim().length < 3 ||
+            t.nome.toLowerCase().includes(state.filtroAtivo.trim().toLowerCase()),
+        ),
+    [times, state.filtroPais, state.filtroAtivo],
+  )
 
   const stepIds = getStepIds(state.formato)
   const currentStepId = stepIds[state.currentStep]
@@ -317,6 +335,8 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                 temporada={state.temporada}
                 selectedTimeIds={state.selectedTimeIds}
                 filtroNome={state.filtroNome}
+                filtroPais={state.filtroPais}
+                paises={paises}
                 timesFiltrados={timesFiltrados}
                 selectedCount={selectedCount}
                 formato={state.formato}
@@ -324,6 +344,7 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                 onSetTemporada={(v) => dispatch({ type: 'SET_FIELD', field: 'temporada', value: v })}
                 onToggleTime={(id) => dispatch({ type: 'TOGGLE_TIME', id })}
                 onSetFiltro={(v) => dispatch({ type: 'SET_FILTRO', value: v })}
+                onSetFiltroPais={(v) => dispatch({ type: 'SET_FILTRO_PAIS', value: v })}
               />
             )}
 
