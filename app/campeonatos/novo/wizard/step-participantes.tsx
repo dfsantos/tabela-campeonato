@@ -6,6 +6,8 @@ interface StepParticipantesProps {
   temporada: string
   selectedTimeIds: Set<string>
   filtroNome: string
+  filtroPais: string
+  paises: string[]
   timesFiltrados: Time[]
   selectedCount: number
   formato: string | null
@@ -13,6 +15,7 @@ interface StepParticipantesProps {
   onSetTemporada: (temporada: string) => void
   onToggleTime: (id: string) => void
   onSetFiltro: (filtro: string) => void
+  onSetFiltroPais: (pais: string) => void
 }
 
 export default function StepParticipantes({
@@ -20,6 +23,8 @@ export default function StepParticipantes({
   temporada,
   selectedTimeIds,
   filtroNome,
+  filtroPais,
+  paises,
   timesFiltrados,
   selectedCount,
   formato,
@@ -27,6 +32,7 @@ export default function StepParticipantes({
   onSetTemporada,
   onToggleTime,
   onSetFiltro,
+  onSetFiltroPais,
 }: StepParticipantesProps) {
   const MAX_TIMES_POR_FORMATO = { liga: 24, copa_mata_mata: 126, copa_grupos: 48 } as const
   const maxTimes = MAX_TIMES_POR_FORMATO[formato as keyof typeof MAX_TIMES_POR_FORMATO] ?? 24
@@ -84,13 +90,29 @@ export default function StepParticipantes({
               {selectedCount} {selectedCount === 1 ? 'time selecionado' : 'times selecionados'}
             </span>
           </div>
-          <input
-            type="text"
-            value={filtroNome}
-            onChange={(e) => onSetFiltro(e.target.value)}
-            placeholder="Buscar time pelo nome…"
-            className="mb-2 w-full rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
-          />
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              value={filtroNome}
+              onChange={(e) => onSetFiltro(e.target.value)}
+              placeholder="Buscar time pelo nome…"
+              className="flex-1 rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+            />
+            {paises.length > 0 && (
+              <select
+                value={filtroPais}
+                onChange={(e) => onSetFiltroPais(e.target.value)}
+                className="rounded-lg border-none bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none transition-colors focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary sm:w-40"
+              >
+                <option value="">Todos os países</option>
+                {paises.map((pais) => (
+                  <option key={pais} value={pais}>
+                    {pais}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <div className="max-h-64 overflow-y-auto overflow-hidden rounded-lg bg-surface-container-low">
             {timesFiltrados.length === 0 ? (
               <p className="px-3 py-4 text-center text-sm text-on-surface-variant">
