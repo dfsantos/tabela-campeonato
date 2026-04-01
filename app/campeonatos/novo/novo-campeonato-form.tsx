@@ -29,6 +29,7 @@ type WizardState = {
   classificadosPorGrupo: number
   turnoRetorno: boolean
   aceitouComplemento: boolean
+  exibirSorteio: boolean
 }
 
 type WizardAction =
@@ -46,6 +47,7 @@ type WizardAction =
   | { type: 'SET_CLASSIFICADOS_POR_GRUPO'; value: number }
   | { type: 'SET_TURNO_RETORNO'; value: boolean }
   | { type: 'SET_ACEITOU_COMPLEMENTO'; value: boolean }
+  | { type: 'SET_EXIBIR_SORTEIO'; value: boolean }
   | { type: 'NEXT_STEP' }
   | { type: 'PREV_STEP' }
   | { type: 'GO_TO_STEP'; step: number }
@@ -67,6 +69,7 @@ const initialState: WizardState = {
   classificadosPorGrupo: 0,
   turnoRetorno: false,
   aceitouComplemento: false,
+  exibirSorteio: true,
 }
 
 function getTotalSteps(formato: CampeonatoFormato | null): number {
@@ -118,6 +121,8 @@ function reducer(state: WizardState, action: WizardAction): WizardState {
       return { ...state, turnoRetorno: action.value }
     case 'SET_ACEITOU_COMPLEMENTO':
       return { ...state, aceitouComplemento: action.value }
+    case 'SET_EXIBIR_SORTEIO':
+      return { ...state, exibirSorteio: action.value }
     case 'NEXT_STEP': {
       const max = getTotalSteps(state.formato) - 1
       return { ...state, currentStep: Math.min(state.currentStep + 1, max) }
@@ -307,6 +312,9 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
           {state.zonaElite && <input type="hidden" name="zonaElite" value={state.zonaElite} />}
           {state.zonaSegundo && <input type="hidden" name="zonaSegundoPelotao" value={state.zonaSegundo} />}
           {state.zonaRebaixamento && <input type="hidden" name="zonaRebaixamento" value={state.zonaRebaixamento} />}
+          {state.exibirSorteio && (state.formato === 'copa_mata_mata' || state.formato === 'copa_grupos') && (
+            <input type="hidden" name="exibirSorteio" value="on" />
+          )}
           {state.formato === 'copa_grupos' && (
             <>
               <input type="hidden" name="timesPorGrupo" value={state.timesPorGrupo} />
@@ -390,6 +398,8 @@ export default function NovoCampeonatoForm({ times }: { times: Time[] }) {
                 timesPorGrupo={state.timesPorGrupo}
                 classificadosPorGrupo={state.classificadosPorGrupo}
                 turnoRetorno={state.turnoRetorno}
+                exibirSorteio={state.exibirSorteio}
+                onSetExibirSorteio={(v) => dispatch({ type: 'SET_EXIBIR_SORTEIO', value: v })}
                 onGoToStep={handleGoToStep}
               />
             )}

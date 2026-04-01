@@ -15,6 +15,8 @@ interface StepResumoProps {
   timesPorGrupo: number
   classificadosPorGrupo: number
   turnoRetorno: boolean
+  exibirSorteio: boolean
+  onSetExibirSorteio: (v: boolean) => void
   onGoToStep: (step: number) => void
 }
 
@@ -37,6 +39,8 @@ export default function StepResumo({
   timesPorGrupo,
   classificadosPorGrupo,
   turnoRetorno,
+  exibirSorteio,
+  onSetExibirSorteio,
   onGoToStep,
 }: StepResumoProps) {
   const selectedCount = selectedTimeIds.size
@@ -248,6 +252,30 @@ export default function StepResumo({
             </div>
           )
         })()}
+
+        {/* Toggle sorteio — apenas para copas */}
+        {(formato === 'copa_mata_mata' || formato === 'copa_grupos') && (
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg bg-surface-container-low p-4">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={exibirSorteio}
+                onChange={(e) => onSetExibirSorteio(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="h-5 w-9 rounded-full bg-outline-variant transition-colors peer-checked:bg-primary" />
+              <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-surface-container-lowest transition-transform peer-checked:translate-x-4" />
+            </div>
+            <div>
+              <span className="text-sm font-medium text-on-surface">
+                Exibir sorteio dos times
+              </span>
+              <p className="font-label text-[10px] text-on-surface-variant">
+                Acompanhe a distribuição dos times {formato === 'copa_grupos' ? 'nos grupos' : 'no chaveamento'}
+              </p>
+            </div>
+          </label>
+        )}
       </div>
     </div>
   )
