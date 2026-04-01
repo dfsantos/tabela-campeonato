@@ -60,8 +60,12 @@ export async function criarCampeonatoAction(formData: FormData): Promise<void> {
   }
 
   const gerarPartidas = formato === 'liga' || formato === 'copa_mata_mata' || formato === 'copa_grupos'
+  const exibirSorteio = formData.get('exibirSorteio') === 'on'
   const campeonato = await addCampeonato(nome, temporada, timeIds, gerarPartidas, zonas, formato, gruposConfig)
   revalidatePath('/')
+  if (exibirSorteio && (formato === 'copa_mata_mata' || formato === 'copa_grupos')) {
+    redirect(`/campeonatos/${campeonato.id}/sorteio`)
+  }
   redirect(`/campeonatos/${campeonato.id}`)
 }
 

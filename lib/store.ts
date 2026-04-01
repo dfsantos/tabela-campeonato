@@ -87,6 +87,24 @@ export async function getTimesDoCampeonato(campeonatoId: string): Promise<Time[]
   }))
 }
 
+export async function getParticipantesComTime(campeonatoId: string): Promise<Array<{ time: Time; grupo?: number }>> {
+  const rows = await sql`
+    SELECT t.id, t.nome, t.cidade, p.grupo
+    FROM participantes p
+    JOIN times t ON t.id = p.time_id
+    WHERE p.campeonato_id = ${Number(campeonatoId)}
+    ORDER BY p.grupo, t.nome
+  `
+  return rows.map((r) => ({
+    time: {
+      id: String(r.id),
+      nome: r.nome as string,
+      ...(r.cidade ? { cidade: r.cidade as string } : {}),
+    },
+    ...(r.grupo != null ? { grupo: r.grupo as number } : {}),
+  }))
+}
+
 export async function getPartidas(campeonatoId: string): Promise<Partida[]> {
   const rows = await sql`
     SELECT
